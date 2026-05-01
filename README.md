@@ -266,11 +266,6 @@ const USER_TIMER_MS = TEST_MODE ? 3 * 60 * 1000 : 10 * 60 * 1000;
 
 ---
 
-## 📜 License
-
-ISC
-
----
 
 <p align="center">
   <strong>Built for competitive programming events.</strong><br/>
