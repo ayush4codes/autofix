@@ -1,0 +1,1089 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Automata Fix Challenge — Live Event</title>
+  <meta name="description" content="Real-time competitive Automata Fix programming challenge. Fix the broken DFA in 15 minutes." />
+  
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            cyber: {
+              dark: '#0a0e1a',
+              panel: '#0d1225',
+              border: '#1a2340',
+              green: '#00ff88',
+              greenDim: '#00cc6a',
+              red: '#ff4444',
+              amber: '#ffcc00',
+              blue: '#00b4ff',
+              purple: '#a855f7',
+            }
+          },
+          fontFamily: {
+            mono: ['"JetBrains Mono"', '"Fira Code"', 'monospace'],
+            display: ['"Orbitron"', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Orbitron:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+
+  <!-- Socket.io Client -->
+  <script src="/socket.io/socket.io.js"></script>
+
+  <style>
+    /* ── Global Styles ── */
+    * { box-sizing: border-box; }
+    body {
+      background: #0a0e1a;
+      color: #e0e0e0;
+      font-family: 'JetBrains Mono', monospace;
+      overflow-x: hidden;
+    }
+
+    /* ── Animated background grid ── */
+    .bg-grid {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      background-image:
+        linear-gradient(rgba(0,255,136,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,255,136,0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      animation: gridScroll 20s linear infinite;
+    }
+    @keyframes gridScroll {
+      0% { transform: translate(0, 0); }
+      100% { transform: translate(40px, 40px); }
+    }
+
+    /* ── Scanline overlay ── */
+    .scanlines {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,0,0,0.08) 2px,
+        rgba(0,0,0,0.08) 4px
+      );
+    }
+
+    /* ── Glow effects ── */
+    .glow-green { text-shadow: 0 0 10px #00ff88, 0 0 40px #00ff8833; }
+    .glow-red { text-shadow: 0 0 10px #ff4444, 0 0 40px #ff444433; }
+    .glow-amber { text-shadow: 0 0 10px #ffcc00, 0 0 40px #ffcc0033; }
+
+    .box-glow-green {
+      box-shadow: 0 0 15px rgba(0,255,136,0.15), inset 0 0 15px rgba(0,255,136,0.05);
+    }
+    .box-glow-red {
+      box-shadow: 0 0 20px rgba(255,68,68,0.3), inset 0 0 15px rgba(255,68,68,0.05);
+    }
+
+    /* ── Pulse animation for warnings ── */
+    @keyframes pulse-glow {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    .pulse-glow { animation: pulse-glow 1.5s ease-in-out infinite; }
+
+    /* ── Typing cursor blink ── */
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+    .cursor-blink::after {
+      content: '█';
+      animation: blink 0.8s step-end infinite;
+      color: #00ff88;
+    }
+
+    /* ── Countdown digits styling ── */
+    .countdown-digit {
+      display: inline-block;
+      min-width: 2.5ch;
+      text-align: center;
+      background: rgba(0,255,136,0.08);
+      border: 1px solid rgba(0,255,136,0.2);
+      border-radius: 6px;
+      padding: 0.2em 0.4em;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ── Problem image container ── */
+    .problem-img {
+      image-rendering: pixelated;
+      border: 1px solid #1a2340;
+      border-radius: 4px;
+    }
+
+    /* ── Textarea styling ── */
+    textarea {
+      resize: vertical;
+      background: #080c18 !important;
+      border: 1px solid #1a2340 !important;
+      color: #00ff88 !important;
+      font-family: 'JetBrains Mono', monospace !important;
+      caret-color: #00ff88;
+      transition: border-color 0.3s;
+    }
+    textarea:focus {
+      border-color: #00ff88 !important;
+      outline: none;
+      box-shadow: 0 0 10px rgba(0,255,136,0.1);
+    }
+    textarea[readonly] {
+      opacity: 0.6;
+      cursor: not-allowed;
+      color: #888 !important;
+    }
+
+    /* ── Button styles ── */
+    .btn-cyber {
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s;
+    }
+    .btn-cyber::before {
+      content: '';
+      position: absolute;
+      top: 0; left: -100%;
+      width: 100%; height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+      transition: left 0.5s;
+    }
+    .btn-cyber:hover::before {
+      left: 100%;
+    }
+
+    /* ── Phase transition fade ── */
+    .phase-container {
+      animation: fadeIn 0.5s ease-out;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Anti-cheat warning flash ── */
+    @keyframes redFlash {
+      0% { background: rgba(255,0,0,0.2); }
+      100% { background: transparent; }
+    }
+    .red-flash {
+      animation: redFlash 0.5s ease-out;
+    }
+
+    /* ── Scrollbar styling ── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #0a0e1a; }
+    ::-webkit-scrollbar-thumb { background: #1a2340; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #00ff88; }
+
+    /* ── Word count bar ── */
+    .word-bar {
+      height: 4px;
+      background: #1a2340;
+      border-radius: 2px;
+      overflow: hidden;
+      transition: all 0.3s;
+    }
+    .word-bar-fill {
+      height: 100%;
+      border-radius: 2px;
+      transition: width 0.3s, background 0.3s;
+    }
+  </style>
+</head>
+
+<body class="min-h-screen relative">
+  <!-- Background layers -->
+  <div class="bg-grid"></div>
+  <div class="scanlines"></div>
+
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- ANTI-CHEAT WARNING BANNER (hidden by default) -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <div id="anticheatBanner" class="fixed top-0 left-0 right-0 z-50 hidden">
+    <div class="bg-red-900/90 border-b-2 border-cyber-red text-center py-3 px-4">
+      <span class="text-cyber-red font-bold text-sm glow-red pulse-glow" id="anticheatMsg">
+        ⚠ TAB SWITCH DETECTED — YOUR ACTIVITY IS BEING MONITORED
+      </span>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- MAIN CONTENT WRAPPER -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <div class="relative z-10 max-w-5xl mx-auto px-4 py-8">
+
+    <!-- ── HEADER (always visible) ── -->
+    <header class="text-center mb-8">
+      <h1 class="font-display text-3xl md:text-4xl font-black tracking-widest glow-green text-cyber-green mb-2">
+        AUTOMATA FIX
+      </h1>
+      <p class="text-xs text-gray-500 tracking-[0.3em] uppercase">
+        Competitive Programming Event &middot; Real-Time Challenge
+      </p>
+      <!-- Connection status -->
+      <div class="mt-3 flex items-center justify-center gap-2 text-xs">
+        <span id="connDot" class="w-2 h-2 rounded-full bg-cyber-green"></span>
+        <span id="connStatus" class="text-gray-500">Connected</span>
+      </div>
+    </header>
+
+    <!-- ══════════════════════════════════════════════════════════ -->
+    <!-- PHASE 0: LOBBY — Countdown to 15:15 IST                 -->
+    <!-- ══════════════════════════════════════════════════════════ -->
+    <section id="phaseLobby" class="phase-container hidden">
+      <div class="bg-cyber-panel border border-cyber-border rounded-xl p-8 md:p-12 text-center box-glow-green">
+        <!-- Decorative top bar -->
+        <div class="flex justify-center gap-1 mb-6">
+          <span class="w-3 h-3 rounded-full bg-cyber-red"></span>
+          <span class="w-3 h-3 rounded-full bg-cyber-amber"></span>
+          <span class="w-3 h-3 rounded-full bg-cyber-green"></span>
+        </div>
+
+        <div class="mb-6">
+          <p class="text-gray-400 text-sm mb-1 tracking-widest uppercase">System Status</p>
+          <p class="text-cyber-amber text-lg font-bold glow-amber">STANDBY — AWAITING EVENT WINDOW</p>
+        </div>
+
+        <div class="mb-8">
+          <p class="text-gray-500 text-xs mb-3 tracking-widest">EVENT BEGINS IN</p>
+          <div id="lobbyCountdown" class="font-display text-5xl md:text-6xl font-black text-cyber-green glow-green">
+            <span class="countdown-digit" id="lobbyH">00</span>
+            <span class="text-gray-600 mx-1">:</span>
+            <span class="countdown-digit" id="lobbyM">00</span>
+            <span class="text-gray-600 mx-1">:</span>
+            <span class="countdown-digit" id="lobbyS">00</span>
+          </div>
+        </div>
+
+        <div class="border-t border-cyber-border pt-6">
+          <p class="text-gray-500 text-xs leading-relaxed max-w-md mx-auto">
+            The challenge opens at <span class="text-cyber-green font-bold">15:15 IST</span> sharp.<br/>
+            Once live, you'll have <span class="text-cyber-amber font-bold">1.5 minutes</span> to fix a broken automaton.<br/>
+            All activity is monitored. No second chances.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════════════ -->
+    <!-- PHASE 1: LOGIN — Enter Discord Username                  -->
+    <!-- ══════════════════════════════════════════════════════════ -->
+    <section id="phaseLogin" class="phase-container hidden">
+      <div class="bg-cyber-panel border border-cyber-border rounded-xl p-8 md:p-12 text-center box-glow-green">
+        <div class="flex justify-center gap-1 mb-6">
+          <span class="w-3 h-3 rounded-full bg-cyber-green animate-pulse"></span>
+          <span class="w-3 h-3 rounded-full bg-cyber-green animate-pulse" style="animation-delay:0.2s"></span>
+          <span class="w-3 h-3 rounded-full bg-cyber-green animate-pulse" style="animation-delay:0.4s"></span>
+        </div>
+
+        <p class="text-cyber-green text-lg font-bold glow-green mb-1">EVENT IS LIVE</p>
+        <p class="text-gray-500 text-xs mb-8 tracking-widest">AUTHENTICATE TO PROCEED</p>
+
+        <!-- Global time remaining -->
+        <div class="mb-6">
+          <p class="text-gray-600 text-xs mb-1">GLOBAL WINDOW CLOSES IN</p>
+          <span id="loginGlobalTimer" class="font-display text-xl text-cyber-amber glow-amber font-bold">60:00</span>
+        </div>
+
+        <div class="max-w-sm mx-auto space-y-4">
+          <div>
+            <label for="nameInput" class="block text-left text-xs text-gray-500 mb-2 tracking-widest uppercase">
+              Full Name
+            </label>
+            <input
+              type="text"
+              id="nameInput"
+              placeholder="John Doe"
+              maxlength="40"
+              autocomplete="off"
+              spellcheck="false"
+              class="w-full bg-[#080c18] border border-cyber-border rounded-lg px-4 py-3 text-cyber-green font-mono text-sm focus:border-cyber-green focus:outline-none focus:ring-1 focus:ring-cyber-green/30 transition-all placeholder-gray-700"
+            />
+          </div>
+          <div>
+            <label for="githubInput" class="block text-left text-xs text-gray-500 mb-2 tracking-widest uppercase">
+              GitHub Username
+            </label>
+            <input
+              type="text"
+              id="githubInput"
+              placeholder="github_user"
+              maxlength="40"
+              autocomplete="off"
+              spellcheck="false"
+              class="w-full bg-[#080c18] border border-cyber-border rounded-lg px-4 py-3 text-cyber-green font-mono text-sm focus:border-cyber-green focus:outline-none focus:ring-1 focus:ring-cyber-green/30 transition-all placeholder-gray-700"
+            />
+          </div>
+          <div>
+            <label for="languageSelect" class="block text-left text-xs text-gray-500 mb-2 tracking-widest uppercase">
+              Programming Language
+            </label>
+            <select
+              id="languageSelect"
+              class="w-full bg-[#080c18] border border-cyber-border rounded-lg px-4 py-3 text-cyber-green font-mono text-sm focus:border-cyber-green focus:outline-none focus:ring-1 focus:ring-cyber-green/30 transition-all"
+            >
+              <option value="C++">C++</option>
+              <option value="Java">Java</option>
+              <option value="Python">Python</option>
+            </select>
+          </div>
+
+          <button
+            id="btnStart"
+            onclick="handleLogin()"
+            class="btn-cyber w-full bg-cyber-green/10 border border-cyber-green text-cyber-green font-bold py-3 rounded-lg hover:bg-cyber-green/20 transition-all tracking-widest text-sm uppercase"
+          >
+            ▶ INITIATE CHALLENGE
+          </button>
+          <p id="loginError" class="text-cyber-red text-xs mt-3 hidden glow-red"></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════════════ -->
+    <!-- PHASE 2: FIX — Problem Image + Code Editor               -->
+    <!-- ══════════════════════════════════════════════════════════ -->
+    <section id="phaseFix" class="phase-container hidden">
+      <!-- Status Bar -->
+      <div class="flex flex-wrap items-center justify-between gap-4 mb-6 bg-cyber-panel border border-cyber-border rounded-lg px-4 py-3">
+        <div class="flex items-center gap-3">
+          <span class="w-2 h-2 rounded-full bg-cyber-green animate-pulse"></span>
+          <span class="text-xs text-gray-400">User: <span id="fixUsername" class="text-cyber-green font-bold">—</span></span>
+        </div>
+        <div class="flex items-center gap-4">
+          <div class="text-center">
+            <p class="text-[10px] text-gray-600 tracking-widest">YOUR TIME</p>
+            <span id="fixTimer" class="font-display text-lg text-cyber-green font-bold glow-green">10:00</span>
+          </div>
+          <div class="w-px h-8 bg-cyber-border"></div>
+          <div class="text-center">
+            <p class="text-[10px] text-gray-600 tracking-widest">GLOBAL</p>
+            <span id="fixGlobalTimer" class="font-display text-lg text-cyber-amber font-bold">60:00</span>
+          </div>
+          <div class="w-px h-8 bg-cyber-border"></div>
+          <div class="text-center" id="tabSwitchDisplay">
+            <p class="text-[10px] text-gray-600 tracking-widest">TAB SWITCHES</p>
+            <span id="tabSwitchCount" class="font-display text-lg text-gray-500 font-bold">0</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Problem Image -->
+      <div class="mb-6">
+        <div class="flex items-center gap-2 mb-3">
+          <span class="text-cyber-amber">◆</span>
+          <h2 class="text-sm font-bold text-gray-300 tracking-widest uppercase">Problem Statement</h2>
+          <span class="text-[10px] text-gray-600 ml-auto">RENDERED SERVER-SIDE &middot; NO COPY</span>
+        </div>
+        <div class="bg-cyber-panel border border-cyber-border rounded-lg p-4 overflow-x-auto">
+          <img id="problemImage" class="problem-img mx-auto max-w-full" alt="Automata Problem" draggable="false" />
+        </div>
+      </div>
+
+      <!-- Fix Code Textarea -->
+      <div class="mb-6">
+        <div class="flex items-center gap-2 mb-3">
+          <span class="text-cyber-green">◆</span>
+          <h2 class="text-sm font-bold text-gray-300 tracking-widest uppercase">Your Fix</h2>
+          <span id="autoSaveStatus" class="text-[10px] text-gray-600 ml-auto">Auto-saving...</span>
+        </div>
+        <textarea
+          id="fixTextarea"
+          rows="12"
+          placeholder="δ(q0, 0) = q0&#10;δ(q0, 1) = q1&#10;δ(q1, 0) = q2&#10;δ(q1, 1) = ...&#10;&#10;// Write all 8 transitions..."
+          spellcheck="false"
+          class="w-full rounded-lg p-4 text-sm leading-relaxed"
+        ></textarea>
+      </div>
+
+      <!-- Submit Fix Button -->
+      <button
+        id="btnSubmitFix"
+        onclick="handleSubmitFix()"
+        class="btn-cyber w-full bg-cyber-green/10 border border-cyber-green text-cyber-green font-bold py-3 rounded-lg hover:bg-cyber-green/20 transition-all tracking-widest text-sm uppercase"
+      >
+        ▶ SUBMIT FIX EARLY &amp; PROCEED TO EXPLANATION
+      </button>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════════════ -->
+    <!-- PHASE 3: EXPLANATION — Logic Defense                     -->
+    <!-- ══════════════════════════════════════════════════════════ -->
+    <section id="phaseExplain" class="phase-container hidden">
+      <!-- Status Bar -->
+      <div class="flex flex-wrap items-center justify-between gap-4 mb-6 bg-cyber-panel border border-cyber-border rounded-lg px-4 py-3">
+        <div class="flex items-center gap-3">
+          <span class="w-2 h-2 rounded-full bg-cyber-amber animate-pulse"></span>
+          <span class="text-xs text-gray-400">User: <span id="explainUsername" class="text-cyber-green font-bold">—</span></span>
+        </div>
+        <div class="flex items-center gap-4">
+          <div class="text-center">
+            <p class="text-[10px] text-gray-600 tracking-widest">YOUR EXPLAIN TIME</p>
+            <span id="explainTimer" class="font-display text-lg text-cyber-purple font-bold glow-purple">10:00</span>
+          </div>
+          <div class="w-px h-8 bg-cyber-border"></div>
+          <div class="text-center">
+            <p class="text-[10px] text-gray-600 tracking-widest">GLOBAL</p>
+            <span id="explainGlobalTimer" class="font-display text-lg text-cyber-amber font-bold">60:00</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Locked Fix Display -->
+      <div class="mb-6">
+        <div class="flex items-center gap-2 mb-3">
+          <span class="text-gray-500">🔒</span>
+          <h2 class="text-sm font-bold text-gray-500 tracking-widest uppercase">Your Submitted Fix (Locked)</h2>
+        </div>
+        <textarea
+          id="lockedFixDisplay"
+          rows="8"
+          readonly
+          class="w-full rounded-lg p-4 text-sm leading-relaxed opacity-60"
+        ></textarea>
+      </div>
+
+      <!-- Explanation Textarea -->
+      <div class="mb-4">
+        <div class="flex items-center gap-2 mb-3">
+          <span class="text-cyber-purple">◆</span>
+          <h2 class="text-sm font-bold text-gray-300 tracking-widest uppercase">Logic Defense</h2>
+        </div>
+        <p class="text-xs text-gray-500 mb-3">
+          Explain your reasoning. Why did you change each transition? 
+          <span class="text-cyber-amber font-bold">Must be 50-150 words.</span> Paste is disabled.
+        </p>
+        <textarea
+          id="explanationTextarea"
+          rows="10"
+          placeholder="Explain your reasoning for each transition change..."
+          spellcheck="false"
+          class="w-full rounded-lg p-4 text-sm leading-relaxed"
+        ></textarea>
+      </div>
+
+      <!-- Word count indicator -->
+      <div class="mb-6">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs text-gray-500">Word Count</span>
+          <span id="wordCountDisplay" class="text-xs font-bold text-gray-500">0 / 50-150</span>
+        </div>
+        <div class="word-bar">
+          <div id="wordBarFill" class="word-bar-fill bg-gray-600" style="width: 0%"></div>
+        </div>
+      </div>
+
+      <!-- Final Submit Button -->
+      <button
+        id="btnFinalSubmit"
+        onclick="handleFinalSubmit()"
+        disabled
+        class="btn-cyber w-full bg-gray-800 border border-gray-700 text-gray-500 font-bold py-3 rounded-lg cursor-not-allowed transition-all tracking-widest text-sm uppercase"
+      >
+        🔒 FINAL SUBMIT (NEED 50-150 WORDS)
+      </button>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════════════ -->
+    <!-- PHASE 4: DONE — Submission Complete                      -->
+    <!-- ══════════════════════════════════════════════════════════ -->
+    <section id="phaseDone" class="phase-container hidden">
+      <div class="bg-cyber-panel border border-cyber-green/30 rounded-xl p-8 md:p-12 text-center box-glow-green">
+        <div class="text-6xl mb-6">✅</div>
+        <h2 class="font-display text-2xl text-cyber-green font-bold glow-green mb-4">SUBMISSION COMPLETE</h2>
+        <p class="text-gray-400 text-sm mb-6 max-w-md mx-auto">
+          Your fix and explanation have been recorded. The results will be compiled after the event window closes at 15:19 IST.
+        </p>
+        <div class="bg-[#080c18] border border-cyber-border rounded-lg p-4 text-left max-w-sm mx-auto">
+          <p class="text-[10px] text-gray-600 tracking-widest mb-2">SESSION SUMMARY</p>
+          <p class="text-xs text-gray-400">User: <span id="doneUsername" class="text-cyber-green font-bold">—</span></p>
+          <p class="text-xs text-gray-400">Tab Switches: <span id="doneTabSwitches" class="text-cyber-amber font-bold">0</span></p>
+          <p class="text-xs text-gray-400">Status: <span class="text-cyber-green font-bold">SUBMITTED</span></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════════════ -->
+    <!-- PHASE 5: EVENT ENDED — Global cutoff                     -->
+    <!-- ══════════════════════════════════════════════════════════ -->
+    <section id="phaseEnded" class="phase-container hidden">
+      <div class="bg-cyber-panel border border-cyber-red/30 rounded-xl p-8 md:p-12 text-center box-glow-red">
+        <div class="text-6xl mb-6">⏰</div>
+        <h2 class="font-display text-2xl text-cyber-red font-bold glow-red mb-4">EVENT ENDED</h2>
+        <p class="text-gray-400 text-sm max-w-md mx-auto">
+          The event window has closed. All submissions have been locked and exported. Thank you for participating!
+        </p>
+      </div>
+    </section>
+
+  </div><!-- end main wrapper -->
+
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- CLIENT-SIDE JAVASCRIPT                                     -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <script>
+    // ──────────────────────────────────────────────────────────────
+    //  STATE
+    // ──────────────────────────────────────────────────────────────
+    let socket = null;
+    let currentPhase = "lobby";     // lobby | login | fix | explain | done | ended
+    let username = "";
+    let userTimeRemainingMs = 0;
+    let globalTimeRemainingMs = 0;
+    let explainTimeRemainingMs = 0;
+    let userTimerInterval = null;
+    let explainTimerInterval = null;
+    let globalTimerInterval = null;
+    let lobbyTimerInterval = null;
+    let autoSaveInterval = null;
+    let tabSwitches = 0;
+
+    // ──────────────────────────────────────────────────────────────
+    //  DOM REFERENCES
+    // ──────────────────────────────────────────────────────────────
+    const $  = (id) => document.getElementById(id);
+    const sections = {
+      lobby:   $("phaseLobby"),
+      login:   $("phaseLogin"),
+      fix:     $("phaseFix"),
+      explain: $("phaseExplain"),
+      done:    $("phaseDone"),
+      ended:   $("phaseEnded"),
+    };
+
+    // ──────────────────────────────────────────────────────────────
+    //  PHASE MANAGEMENT — show/hide sections
+    // ──────────────────────────────────────────────────────────────
+    function showPhase(phase) {
+      currentPhase = phase;
+      Object.values(sections).forEach(s => s.classList.add("hidden"));
+      if (sections[phase]) sections[phase].classList.remove("hidden");
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    //  TIMER UTILITIES
+    // ──────────────────────────────────────────────────────────────
+    function formatTime(ms) {
+      if (ms <= 0) return "00:00";
+      const totalSec = Math.ceil(ms / 1000);
+      const m = String(Math.floor(totalSec / 60)).padStart(2, "0");
+      const s = String(totalSec % 60).padStart(2, "0");
+      return `${m}:${s}`;
+    }
+
+    function formatTimeLong(ms) {
+      if (ms <= 0) return { h: "00", m: "00", s: "00" };
+      const totalSec = Math.ceil(ms / 1000);
+      const h = String(Math.floor(totalSec / 3600)).padStart(2, "0");
+      const m = String(Math.floor((totalSec % 3600) / 60)).padStart(2, "0");
+      const s = String(totalSec % 60).padStart(2, "0");
+      return { h, m, s };
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    //  LOBBY COUNTDOWN
+    // ──────────────────────────────────────────────────────────────
+    function startLobbyCountdown(msUntilStart) {
+      let remaining = msUntilStart;
+      clearInterval(lobbyTimerInterval);
+
+      function update() {
+        const t = formatTimeLong(remaining);
+        $("lobbyH").textContent = t.h;
+        $("lobbyM").textContent = t.m;
+        $("lobbyS").textContent = t.s;
+      }
+      update();
+
+      lobbyTimerInterval = setInterval(() => {
+        remaining -= 1000;
+        if (remaining <= 0) {
+          clearInterval(lobbyTimerInterval);
+          remaining = 0;
+        }
+        update();
+      }, 1000);
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    //  LOGIN GLOBAL TIMER
+    // ──────────────────────────────────────────────────────────────
+    function startLoginGlobalTimer() {
+      clearInterval(globalTimerInterval);
+      globalTimerInterval = setInterval(() => {
+        globalTimeRemainingMs -= 1000;
+        if (globalTimeRemainingMs <= 0) globalTimeRemainingMs = 0;
+        $("loginGlobalTimer").textContent = formatTime(globalTimeRemainingMs);
+      }, 1000);
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    //  FIX PHASE TIMERS
+    // ──────────────────────────────────────────────────────────────
+    function startFixTimers() {
+      clearInterval(userTimerInterval);
+      clearInterval(globalTimerInterval);
+
+      // User 15-min timer
+      userTimerInterval = setInterval(() => {
+        userTimeRemainingMs -= 1000;
+        if (userTimeRemainingMs <= 0) {
+          userTimeRemainingMs = 0;
+          clearInterval(userTimerInterval);
+          // Time's up: auto-submit fix
+          handleSubmitFix();
+        }
+
+        const timerEl = $("fixTimer");
+        timerEl.textContent = formatTime(userTimeRemainingMs);
+
+        // Color changes based on urgency
+        if (userTimeRemainingMs <= 60000) {
+          timerEl.classList.remove("text-cyber-green", "text-cyber-amber", "glow-green", "glow-amber");
+          timerEl.classList.add("text-cyber-red", "glow-red", "pulse-glow");
+        } else if (userTimeRemainingMs <= 180000) {
+          timerEl.classList.remove("text-cyber-green", "glow-green");
+          timerEl.classList.add("text-cyber-amber", "glow-amber");
+        }
+      }, 1000);
+
+      // Global timer (shown in fix and explain phases)
+      globalTimerInterval = setInterval(() => {
+        globalTimeRemainingMs -= 1000;
+        if (globalTimeRemainingMs <= 0) globalTimeRemainingMs = 0;
+
+        const fixGlobal = $("fixGlobalTimer");
+        const explainGlobal = $("explainGlobalTimer");
+        if (fixGlobal) fixGlobal.textContent = formatTime(globalTimeRemainingMs);
+        if (explainGlobal) explainGlobal.textContent = formatTime(globalTimeRemainingMs);
+      }, 1000);
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    //  AUTO-SAVE (fix code sent to server every 3 seconds)
+    // ──────────────────────────────────────────────────────────────
+    function startAutoSave() {
+      clearInterval(autoSaveInterval);
+      autoSaveInterval = setInterval(() => {
+        if (currentPhase !== "fix") { clearInterval(autoSaveInterval); return; }
+        const fixCode = $("fixTextarea").value;
+        socket.emit("fix:update", { username, fixCode });
+        $("autoSaveStatus").textContent = "✓ Saved";
+        setTimeout(() => {
+          const el = $("autoSaveStatus");
+          if (el) el.textContent = "Auto-saving...";
+        }, 1500);
+      }, 3000);
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    //  WORD COUNT for explanation
+    // ──────────────────────────────────────────────────────────────
+    function updateWordCount() {
+      const text = $("explanationTextarea").value;
+      const words = text.trim().split(/\s+/).filter(Boolean).length;
+      const display = $("wordCountDisplay");
+      const bar = $("wordBarFill");
+      const btn = $("btnFinalSubmit");
+
+      display.textContent = `${words} / 50-150`;
+
+      // Bar width: 0% at 0 words, 100% at 150 words
+      const pct = Math.min(100, (words / 150) * 100);
+      bar.style.width = `${pct}%`;
+
+      if (words >= 50 && words <= 150) {
+        // Valid range
+        display.classList.remove("text-gray-500", "text-cyber-red");
+        display.classList.add("text-cyber-green");
+        bar.classList.remove("bg-gray-600", "bg-cyber-red", "bg-cyber-amber");
+        bar.classList.add("bg-cyber-green");
+        btn.disabled = false;
+        btn.classList.remove("bg-gray-800", "border-gray-700", "text-gray-500", "cursor-not-allowed");
+        btn.classList.add("bg-cyber-green/10", "border-cyber-green", "text-cyber-green", "hover:bg-cyber-green/20");
+        btn.innerHTML = "▶ FINAL SUBMIT";
+      } else if (words > 150) {
+        // Over limit
+        display.classList.remove("text-gray-500", "text-cyber-green");
+        display.classList.add("text-cyber-red");
+        bar.classList.remove("bg-gray-600", "bg-cyber-green", "bg-cyber-amber");
+        bar.classList.add("bg-cyber-red");
+        btn.disabled = true;
+        btn.classList.remove("bg-cyber-green/10", "border-cyber-green", "text-cyber-green", "hover:bg-cyber-green/20");
+        btn.classList.add("bg-gray-800", "border-gray-700", "text-gray-500", "cursor-not-allowed");
+        btn.innerHTML = "🔒 TOO MANY WORDS";
+      } else {
+        // Under limit
+        display.classList.remove("text-cyber-green", "text-cyber-red");
+        display.classList.add("text-gray-500");
+        bar.classList.remove("bg-cyber-green", "bg-cyber-red");
+        bar.classList.add(words > 25 ? "bg-cyber-amber" : "bg-gray-600");
+        btn.disabled = true;
+        btn.classList.remove("bg-cyber-green/10", "border-cyber-green", "text-cyber-green", "hover:bg-cyber-green/20");
+        btn.classList.add("bg-gray-800", "border-gray-700", "text-gray-500", "cursor-not-allowed");
+        btn.innerHTML = `🔒 FINAL SUBMIT (NEED ${50 - words} MORE WORDS)`;
+      }
+
+      // Auto-save explanation to server
+      socket.emit("explanation:update", { username, explanation: text });
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    //  HANDLERS — Login, Submit Fix, Final Submit
+    // ──────────────────────────────────────────────────────────────
+
+    function handleLogin() {
+      const name = $("nameInput").value.trim();
+      const github = $("githubInput").value.trim();
+      const language = $("languageSelect").value;
+      
+      if (!name || !github) {
+        showLoginError("Please enter your name and GitHub username.");
+        return;
+      }
+
+      $("btnStart").disabled = true;
+      $("btnStart").textContent = "CONNECTING...";
+
+      const payload = { name, github, language };
+
+      socket.emit("user:login", payload, (res) => {
+        if (!res.ok) {
+          showLoginError(res.error);
+          $("btnStart").disabled = false;
+          $("btnStart").innerHTML = "▶ INITIATE CHALLENGE";
+          return;
+        }
+
+        username = github;
+
+        if (res.reconnected) {
+          // ── Reconnection: restore state ──
+          const d = res.data;
+          tabSwitches = d.tabSwitchCount || 0;
+          globalTimeRemainingMs = d.globalTimeRemainingMs;
+
+          if (d.finalSubmitted) {
+            // Already submitted everything
+            showDonePhase();
+          } else if (d.fixLocked) {
+            // Fix is locked, go to explain phase
+            explainTimeRemainingMs = d.explainTimeRemainingMs;
+            transitionToExplain(d.fixCode, d.explanation);
+          } else {
+            // Still in fix phase
+            userTimeRemainingMs = d.timeRemainingMs;
+            showFixPhase(d.problemImage, d.fixCode);
+          }
+        } else {
+          // ── New user: start fresh ──
+          userTimeRemainingMs = res.data.timeRemainingMs;
+          explainTimeRemainingMs = res.data.explainTimeRemainingMs;
+          globalTimeRemainingMs = res.data.globalTimeRemainingMs;
+          
+          let defaultCode = "";
+          if (res.data.language === "C++") {
+            defaultCode = `void generatePermutations(string& str, int left, int right, vector<string>& result) {\n    if (left == right) {\n        result.push_back(str);\n    } else {\n        for (int i = left; i <= right; i++) {\n            swap(str[left], str[i]);\n            generatePermutations(str, left + 1, right, result);\n        }\n    }\n}\n// Called initially as: generatePermutations(str, 0, str.length() - 1, result);`;
+          } else if (res.data.language === "Python") {
+            defaultCode = `def generate_permutations(chars, left, right, result):\n    if left == right:\n        result.append("".join(chars))\n    else:\n        for i in range(left, right + 1):\n            chars[left], chars[i] = chars[i], chars[left]\n            generate_permutations(chars, left + 1, right, result)\n            \n# Called initially as: generate_permutations(list("abc"), 0, len(chars) - 1, result)`;
+          } else if (res.data.language === "Java") {
+            defaultCode = `public void generatePermutations(char[] str, int left, int right, List<String> result) {\n    if (left == right) {\n        result.add(new String(str));\n    } else {\n        for (int i = left; i <= right; i++) {\n            // Assume swap() is a simple helper function that swaps two indices\n            swap(str, left, i); \n            generatePermutations(str, left + 1, right, result);\n        }\n    }\n}\n// Called initially as: generatePermutations(str, 0, str.length - 1, result);`;
+          }
+          
+          showFixPhase(res.data.problemImage, defaultCode);
+        }
+      });
+    }
+
+    function showLoginError(msg) {
+      const el = $("loginError");
+      el.textContent = msg;
+      el.classList.remove("hidden");
+      setTimeout(() => el.classList.add("hidden"), 5000);
+    }
+
+    function showFixPhase(problemImage, existingCode) {
+      showPhase("fix");
+      $("fixUsername").textContent = username;
+      $("problemImage").src = problemImage;
+      $("fixTimer").textContent = formatTime(userTimeRemainingMs);
+      $("fixGlobalTimer").textContent = formatTime(globalTimeRemainingMs);
+      $("tabSwitchCount").textContent = tabSwitches;
+
+      if (existingCode) {
+        $("fixTextarea").value = existingCode;
+      }
+
+      startFixTimers();
+      startAutoSave();
+    }
+
+    function handleSubmitFix() {
+      const fixCode = $("fixTextarea").value;
+
+      // Save one last time
+      socket.emit("fix:update", { username, fixCode });
+
+      socket.emit("fix:submit", { username, fixCode }, (res) => {
+        if (res && !res.ok) {
+          console.warn("Fix submit error:", res.error);
+        }
+        transitionToExplain(fixCode);
+      });
+    }
+
+    function transitionToExplain(fixCode, existingExplanation) {
+      clearInterval(userTimerInterval);
+      clearInterval(autoSaveInterval);
+      showPhase("explain");
+
+      $("explainUsername").textContent = username;
+      $("lockedFixDisplay").value = fixCode || "";
+      $("explainGlobalTimer").textContent = formatTime(globalTimeRemainingMs);
+      $("explainTimer").textContent = formatTime(explainTimeRemainingMs);
+
+      if (existingExplanation) {
+        $("explanationTextarea").value = existingExplanation;
+        updateWordCount();
+      }
+      
+      // Start explain timer
+      clearInterval(explainTimerInterval);
+      explainTimerInterval = setInterval(() => {
+        explainTimeRemainingMs -= 1000;
+        if (explainTimeRemainingMs <= 0) {
+          explainTimeRemainingMs = 0;
+          clearInterval(explainTimerInterval);
+        }
+
+        const timerEl = $("explainTimer");
+        timerEl.textContent = formatTime(explainTimeRemainingMs);
+
+        // Color changes based on urgency
+        if (explainTimeRemainingMs <= 60000) {
+          timerEl.classList.remove("text-cyber-purple", "text-cyber-amber", "glow-purple", "glow-amber");
+          timerEl.classList.add("text-cyber-red", "glow-red", "pulse-glow");
+        } else if (explainTimeRemainingMs <= 180000) {
+          timerEl.classList.remove("text-cyber-purple", "glow-purple");
+          timerEl.classList.add("text-cyber-amber", "glow-amber");
+        }
+      }, 1000);
+    }
+
+    function handleFinalSubmit() {
+      const explanation = $("explanationTextarea").value;
+      const btn = $("btnFinalSubmit");
+
+      btn.disabled = true;
+      btn.textContent = "SUBMITTING...";
+
+      socket.emit("final:submit", { username, explanation }, (res) => {
+        if (!res.ok) {
+          alert(res.error);
+          btn.disabled = false;
+          updateWordCount();
+          return;
+        }
+        showDonePhase();
+      });
+    }
+
+    function showDonePhase() {
+      showPhase("done");
+      $("doneUsername").textContent = username;
+      $("doneTabSwitches").textContent = tabSwitches;
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    //  ANTI-CHEAT SYSTEM
+    // ──────────────────────────────────────────────────────────────
+
+    // 1. Disable right-click context menu
+    document.addEventListener("contextmenu", (e) => {
+      e.preventDefault();
+      return false;
+    });
+
+    // 2. Disable Ctrl+C / Ctrl+V / Ctrl+U / Ctrl+S globally
+    document.addEventListener("keydown", (e) => {
+      if (e.ctrlKey && ["c", "v", "u", "s", "a"].includes(e.key.toLowerCase())) {
+        // Allow Ctrl+A (select all) in explanation textarea only
+        if (e.key.toLowerCase() === "a" && e.target.id === "explanationTextarea") return;
+        e.preventDefault();
+        return false;
+      }
+      // Disable F12 (DevTools)
+      if (e.key === "F12") {
+        e.preventDefault();
+        return false;
+      }
+    });
+
+    // 3. Disable paste on explanation textarea
+    document.addEventListener("DOMContentLoaded", () => {
+      const explTA = $("explanationTextarea");
+      if (explTA) {
+        explTA.addEventListener("paste", (e) => {
+          e.preventDefault();
+          return false;
+        });
+      }
+    });
+
+    // 4. Tab visibility tracking
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden && username && (currentPhase === "fix" || currentPhase === "explain")) {
+        tabSwitches++;
+        $("tabSwitchCount") && ($("tabSwitchCount").textContent = tabSwitches);
+
+        // Notify server
+        socket.emit("anticheat:tabswitch", { username });
+
+        // Visual warning
+        document.body.classList.add("red-flash");
+        setTimeout(() => document.body.classList.remove("red-flash"), 500);
+      }
+    });
+
+    // 5. Disable drag on problem image
+    document.addEventListener("dragstart", (e) => {
+      if (e.target.id === "problemImage") {
+        e.preventDefault();
+        return false;
+      }
+    });
+
+    // ──────────────────────────────────────────────────────────────
+    //  SOCKET.IO — Connect & Listen
+    // ──────────────────────────────────────────────────────────────
+    function initSocket() {
+      socket = io();
+
+      // Connection status indicator
+      socket.on("connect", () => {
+        $("connDot").classList.remove("bg-cyber-red");
+        $("connDot").classList.add("bg-cyber-green");
+        $("connStatus").textContent = "Connected";
+      });
+
+      socket.on("disconnect", () => {
+        $("connDot").classList.remove("bg-cyber-green");
+        $("connDot").classList.add("bg-cyber-red");
+        $("connStatus").textContent = "Disconnected — reconnecting...";
+      });
+
+      // ── Event phase update from server ──
+      socket.on("event:phase", (data) => {
+        globalTimeRemainingMs = data.msUntilEnd;
+
+        if (data.phase === "lobby") {
+          showPhase("lobby");
+          startLobbyCountdown(data.msUntilStart);
+        } else if (data.phase === "active") {
+          // If we were in lobby, transition to login
+          if (currentPhase === "lobby") {
+            showPhase("login");
+            startLoginGlobalTimer();
+          }
+        } else if (data.phase === "ended") {
+          showPhase("ended");
+        }
+      });
+
+      // ── Fix auto-locked by server (10 min expired) ──
+      socket.on("fix:locked", (data) => {
+        if (currentPhase === "fix") {
+          explainTimeRemainingMs = 10 * 60 * 1000; // 10 minutes
+          transitionToExplain(data.fixCode || $("fixTextarea").value);
+        }
+      });
+
+      // ── Explain auto-locked by server (10 min expired) ──
+      socket.on("explain:locked", () => {
+        if (currentPhase === "explain") {
+          // Trigger final submit with whatever they have
+          handleFinalSubmit();
+        }
+      });
+
+      // ── Anti-cheat warning from server ──
+      socket.on("anticheat:warning", (data) => {
+        tabSwitches = data.tabSwitchCount;
+        const banner = $("anticheatBanner");
+        $("anticheatMsg").textContent = data.message;
+        banner.classList.remove("hidden");
+
+        // Update displays
+        if ($("tabSwitchCount")) $("tabSwitchCount").textContent = tabSwitches;
+
+        // Highlight the counter in red
+        const display = $("tabSwitchDisplay");
+        if (display) {
+          $("tabSwitchCount").classList.remove("text-gray-500");
+          $("tabSwitchCount").classList.add("text-cyber-red", "glow-red");
+        }
+
+        // Auto-hide banner after 4 seconds
+        setTimeout(() => banner.classList.add("hidden"), 4000);
+      });
+
+      // ── Global event ended — force lock everything ──
+      socket.on("event:ended", (data) => {
+        clearInterval(userTimerInterval);
+        clearInterval(explainTimerInterval);
+        clearInterval(globalTimerInterval);
+        clearInterval(autoSaveInterval);
+        clearInterval(lobbyTimerInterval);
+
+        // If in fix phase, force submit whatever they have
+        if (currentPhase === "fix") {
+          const fixCode = $("fixTextarea").value;
+          socket.emit("fix:submit", { username, fixCode }, () => {});
+        }
+        // If in explain phase, force submit explanation
+        if (currentPhase === "explain") {
+          const explanation = $("explanationTextarea").value;
+          socket.emit("explanation:update", { username, explanation });
+        }
+
+        showPhase("ended");
+      });
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    //  INIT — Bootstrap the app
+    // ──────────────────────────────────────────────────────────────
+    document.addEventListener("DOMContentLoaded", () => {
+      initSocket();
+
+      // Word count listener for explanation
+      $("explanationTextarea").addEventListener("input", updateWordCount);
+
+      // Enter key on github input
+      $("githubInput").addEventListener("keydown", (e) => {
+        if (e.key === "Enter") handleLogin();
+      });
+    });
+  </script>
+</body>
+</html>
