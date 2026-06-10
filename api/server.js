@@ -37,7 +37,7 @@ app.use((req, res, next) => {
 //  CONFIGURATION
 // ============================================================================
 
-const TEST_MODE = true;
+const TEST_MODE = false;
 const USER_TIMER_MS = 10 * 60 * 1000;      // 10 minutes for fix phase
 const EXPLAIN_TIMER_MS = 10 * 60 * 1000;   // 10 minutes for explanation phase
 const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
