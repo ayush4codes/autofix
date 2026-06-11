@@ -211,16 +211,16 @@ async function getTodayEventWindow() {
   const month = nowIST.getMonth();
   const day = nowIST.getDate();
 
-  // 18:00 IST in UTC
-  const startIST = new Date(year, month, day, 18, 0, 0, 0);
+  // 10:20 IST in UTC
+  const startIST = new Date(year, month, day, 10, 20, 0, 0);
   const startUTC = new Date(startIST.getTime() - IST_OFFSET_MS - new Date().getTimezoneOffset() * 60000);
 
-  // 19:00 IST in UTC
-  const endIST = new Date(year, month, day, 19, 0, 0, 0);
+  // 11:20 IST in UTC
+  const endIST = new Date(year, month, day, 11, 20, 0, 0);
   const endUTC = new Date(endIST.getTime() - IST_OFFSET_MS - new Date().getTimezoneOffset() * 60000);
 
-  // 19:01 IST in UTC (for data export)
-  const exportIST = new Date(year, month, day, 19, 1, 0, 0);
+  // 11:21 IST in UTC (for data export)
+  const exportIST = new Date(year, month, day, 11, 21, 0, 0);
   const exportUTC = new Date(exportIST.getTime() - IST_OFFSET_MS - new Date().getTimezoneOffset() * 60000);
 
   return {
