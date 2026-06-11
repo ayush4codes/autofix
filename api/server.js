@@ -7,13 +7,6 @@ const express = require("express");
 const fs = require("fs");
 const path = require("path");
 const { MongoClient } = require("mongodb");
-// Lazy-load @vercel/kv to prevent crashes when KV env vars are not configured
-let kv = null;
-try {
-  kv = require("@vercel/kv").kv;
-} catch (e) {
-  console.warn("[STORAGE] @vercel/kv not available:", e.message);
-}
 
 const app = express();
 app.use(express.json());
@@ -66,9 +59,8 @@ async function getMongoDb() {
 class StorageManager {
   constructor() {
     this.isMongo = !!process.env.MONGODB_URI;
-    this.isKV = !this.isMongo && !!(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN);
     
-    if (!this.isMongo && !this.isKV) {
+    if (!this.isMongo) {
       // Local fallback configuration (root folder relative)
       this.backupPath = path.join(process.cwd(), "participants_backup.json");
       this.participants = {};
@@ -108,9 +100,6 @@ class StorageManager {
       const db = await getMongoDb();
       return await db.collection("participants").findOne({ username });
     }
-    if (this.isKV) {
-      return await kv.get(`participant:${username}`);
-    }
     return this.participants[username] || null;
   }
 
@@ -127,11 +116,6 @@ class StorageManager {
       );
       return;
     }
-    if (this.isKV) {
-      await kv.sadd("participants_set", username);
-      await kv.set(`participant:${username}`, cleanData);
-      return;
-    }
     this.participants[username] = cleanData;
     this.saveLocal();
   }
@@ -141,16 +125,6 @@ class StorageManager {
       const db = await getMongoDb();
       return await db.collection("participants").find({}).toArray();
     }
-    if (this.isKV) {
-      const usernames = await kv.smembers("participants_set");
-      if (!usernames || usernames.length === 0) return [];
-      const list = [];
-      for (const username of usernames) {
-        const val = await kv.get(`participant:${username}`);
-        if (val) list.push(val);
-      }
-      return list;
-    }
     return Object.values(this.participants);
   }
 
@@ -159,9 +133,6 @@ class StorageManager {
       const db = await getMongoDb();
       const doc = await db.collection("config").findOne({ key: "event_window" });
       return doc ? doc.value : null;
-    }
-    if (this.isKV) {
-      return await kv.get("event_window");
     }
     return this.eventWindow;
   }
@@ -174,10 +145,6 @@ class StorageManager {
         { $set: { value: windowData } },
         { upsert: true }
       );
-      return;
-    }
-    if (this.isKV) {
-      await kv.set("event_window", windowData);
       return;
     }
     this.eventWindow = windowData;

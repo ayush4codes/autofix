@@ -13,7 +13,6 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "@vercel/kv": "^1.0.1",
     "dotenv": "^17.4.2",
     "express": "^4.19.2",
     "mongodb": "^6.5.0"
