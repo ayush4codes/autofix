@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Automata Fix Challenge — Live Event</title>
-  <meta name="description" content="Real-time competitive Automata Fix programming challenge. Fix the broken Drone Path Validator code in 15 minutes." />
-  
+  <meta name="description"
+    content="Real-time competitive Automata Fix programming challenge. Fix the broken Drone Path Validator code in 15 minutes." />
+
   <!-- Tailwind CSS via CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -37,13 +39,18 @@
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Orbitron:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Orbitron:wght@400;500;600;700;800;900&display=swap"
+    rel="stylesheet" />
 
   <!-- Vercel serverless build compatible -->
 
   <style>
     /* ── Global Styles ── */
-    * { box-sizing: border-box; }
+    * {
+      box-sizing: border-box;
+    }
+
     body {
       background: #0a0e1a;
       color: #e0e0e0;
@@ -57,14 +64,20 @@
       inset: 0;
       z-index: 0;
       background-image:
-        linear-gradient(rgba(0,255,136,0.03) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0,255,136,0.03) 1px, transparent 1px);
+        linear-gradient(rgba(0, 255, 136, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 255, 136, 0.03) 1px, transparent 1px);
       background-size: 40px 40px;
       animation: gridScroll 20s linear infinite;
     }
+
     @keyframes gridScroll {
-      0% { transform: translate(0, 0); }
-      100% { transform: translate(40px, 40px); }
+      0% {
+        transform: translate(0, 0);
+      }
+
+      100% {
+        transform: translate(40px, 40px);
+      }
     }
 
     /* ── Scanline overlay ── */
@@ -73,40 +86,68 @@
       inset: 0;
       z-index: 1;
       pointer-events: none;
-      background: repeating-linear-gradient(
-        0deg,
-        transparent,
-        transparent 2px,
-        rgba(0,0,0,0.08) 2px,
-        rgba(0,0,0,0.08) 4px
-      );
+      background: repeating-linear-gradient(0deg,
+          transparent,
+          transparent 2px,
+          rgba(0, 0, 0, 0.08) 2px,
+          rgba(0, 0, 0, 0.08) 4px);
     }
 
     /* ── Glow effects ── */
-    .glow-green { text-shadow: 0 0 10px #00ff88, 0 0 40px #00ff8833; }
-    .glow-red { text-shadow: 0 0 10px #ff4444, 0 0 40px #ff444433; }
-    .glow-amber { text-shadow: 0 0 10px #ffcc00, 0 0 40px #ffcc0033; }
-    .glow-purple { text-shadow: 0 0 10px #a855f7, 0 0 40px #a855f733; }
+    .glow-green {
+      text-shadow: 0 0 10px #00ff88, 0 0 40px #00ff8833;
+    }
+
+    .glow-red {
+      text-shadow: 0 0 10px #ff4444, 0 0 40px #ff444433;
+    }
+
+    .glow-amber {
+      text-shadow: 0 0 10px #ffcc00, 0 0 40px #ffcc0033;
+    }
+
+    .glow-purple {
+      text-shadow: 0 0 10px #a855f7, 0 0 40px #a855f733;
+    }
 
     .box-glow-green {
-      box-shadow: 0 0 15px rgba(0,255,136,0.15), inset 0 0 15px rgba(0,255,136,0.05);
+      box-shadow: 0 0 15px rgba(0, 255, 136, 0.15), inset 0 0 15px rgba(0, 255, 136, 0.05);
     }
+
     .box-glow-red {
-      box-shadow: 0 0 20px rgba(255,68,68,0.3), inset 0 0 15px rgba(255,68,68,0.05);
+      box-shadow: 0 0 20px rgba(255, 68, 68, 0.3), inset 0 0 15px rgba(255, 68, 68, 0.05);
     }
 
     /* ── Pulse animation for warnings ── */
     @keyframes pulse-glow {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.5; }
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.5;
+      }
     }
-    .pulse-glow { animation: pulse-glow 1.5s ease-in-out infinite; }
+
+    .pulse-glow {
+      animation: pulse-glow 1.5s ease-in-out infinite;
+    }
 
     /* ── Typing cursor blink ── */
     @keyframes blink {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0; }
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0;
+      }
     }
+
     .cursor-blink::after {
       content: '█';
       animation: blink 0.8s step-end infinite;
@@ -118,8 +159,8 @@
       display: inline-block;
       min-width: 2.5ch;
       text-align: center;
-      background: rgba(0,255,136,0.08);
-      border: 1px solid rgba(0,255,136,0.2);
+      background: rgba(0, 255, 136, 0.08);
+      border: 1px solid rgba(0, 255, 136, 0.2);
       border-radius: 6px;
       padding: 0.2em 0.4em;
       font-variant-numeric: tabular-nums;
@@ -142,11 +183,13 @@
       caret-color: #00ff88;
       transition: border-color 0.3s;
     }
+
     textarea:focus {
       border-color: #00ff88 !important;
       outline: none;
-      box-shadow: 0 0 10px rgba(0,255,136,0.1);
+      box-shadow: 0 0 10px rgba(0, 255, 136, 0.1);
     }
+
     textarea[readonly] {
       opacity: 0.6;
       cursor: not-allowed;
@@ -159,14 +202,18 @@
       overflow: hidden;
       transition: all 0.3s;
     }
+
     .btn-cyber::before {
       content: '';
       position: absolute;
-      top: 0; left: -100%;
-      width: 100%; height: 100%;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent);
       transition: left 0.5s;
     }
+
     .btn-cyber:hover::before {
       left: 100%;
     }
@@ -175,25 +222,51 @@
     .phase-container {
       animation: fadeIn 0.5s ease-out;
     }
+
     @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
     /* ── Anti-cheat warning flash ── */
     @keyframes redFlash {
-      0% { background: rgba(255,0,0,0.2); }
-      100% { background: transparent; }
+      0% {
+        background: rgba(255, 0, 0, 0.2);
+      }
+
+      100% {
+        background: transparent;
+      }
     }
+
     .red-flash {
       animation: redFlash 0.5s ease-out;
     }
 
     /* ── Scrollbar styling ── */
-    ::-webkit-scrollbar { width: 6px; }
-    ::-webkit-scrollbar-track { background: #0a0e1a; }
-    ::-webkit-scrollbar-thumb { background: #1a2340; border-radius: 3px; }
-    ::-webkit-scrollbar-thumb:hover { background: #00ff88; }
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #0a0e1a;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #1a2340;
+      border-radius: 3px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #00ff88;
+    }
 
     /* ── Word count bar ── */
     .word-bar {
@@ -203,6 +276,7 @@
       overflow: hidden;
       transition: all 0.3s;
     }
+
     .word-bar-fill {
       height: 100%;
       border-radius: 2px;
@@ -277,8 +351,8 @@
 
         <div class="border-t border-cyber-border pt-6">
           <p class="text-gray-500 text-xs leading-relaxed max-w-md mx-auto">
-            The challenge opens at <span class="text-cyber-green font-bold">16:00 IST</span> sharp.<br/>
-            Once live, you'll have <span class="text-cyber-amber font-bold">15 minutes</span> to fix broken code.<br/>
+            The challenge opens at <span class="text-cyber-green font-bold">16:00 IST</span> sharp.<br />
+            Once live, you'll have <span class="text-cyber-amber font-bold">15 minutes</span> to fix broken code.<br />
             All activity is monitored. No second chances.
           </p>
         </div>
@@ -310,49 +384,32 @@
             <label for="nameInput" class="block text-left text-xs text-gray-500 mb-2 tracking-widest uppercase">
               Full Name
             </label>
-            <input
-              type="text"
-              id="nameInput"
-              placeholder="John Doe"
-              maxlength="40"
-              autocomplete="off"
+            <input type="text" id="nameInput" placeholder="John Doe" maxlength="40" autocomplete="off"
               spellcheck="false"
-              class="w-full bg-[#080c18] border border-cyber-border rounded-lg px-4 py-3 text-cyber-green font-mono text-sm focus:border-cyber-green focus:outline-none focus:ring-1 focus:ring-cyber-green/30 transition-all placeholder-gray-700"
-            />
+              class="w-full bg-[#080c18] border border-cyber-border rounded-lg px-4 py-3 text-cyber-green font-mono text-sm focus:border-cyber-green focus:outline-none focus:ring-1 focus:ring-cyber-green/30 transition-all placeholder-gray-700" />
           </div>
           <div>
             <label for="githubInput" class="block text-left text-xs text-gray-500 mb-2 tracking-widest uppercase">
               GitHub Username
             </label>
-            <input
-              type="text"
-              id="githubInput"
-              placeholder="github_user"
-              maxlength="40"
-              autocomplete="off"
+            <input type="text" id="githubInput" placeholder="github_user" maxlength="40" autocomplete="off"
               spellcheck="false"
-              class="w-full bg-[#080c18] border border-cyber-border rounded-lg px-4 py-3 text-cyber-green font-mono text-sm focus:border-cyber-green focus:outline-none focus:ring-1 focus:ring-cyber-green/30 transition-all placeholder-gray-700"
-            />
+              class="w-full bg-[#080c18] border border-cyber-border rounded-lg px-4 py-3 text-cyber-green font-mono text-sm focus:border-cyber-green focus:outline-none focus:ring-1 focus:ring-cyber-green/30 transition-all placeholder-gray-700" />
           </div>
           <div>
             <label for="languageSelect" class="block text-left text-xs text-gray-500 mb-2 tracking-widest uppercase">
               Programming Language
             </label>
-            <select
-              id="languageSelect"
-              class="w-full bg-[#080c18] border border-cyber-border rounded-lg px-4 py-3 text-cyber-green font-mono text-sm focus:border-cyber-green focus:outline-none focus:ring-1 focus:ring-cyber-green/30 transition-all"
-            >
+            <select id="languageSelect"
+              class="w-full bg-[#080c18] border border-cyber-border rounded-lg px-4 py-3 text-cyber-green font-mono text-sm focus:border-cyber-green focus:outline-none focus:ring-1 focus:ring-cyber-green/30 transition-all">
               <option value="C++">C++</option>
               <option value="Java">Java</option>
               <option value="Python">Python</option>
             </select>
           </div>
 
-          <button
-            id="btnStart"
-            onclick="handleLogin()"
-            class="btn-cyber w-full bg-cyber-green/10 border border-cyber-green text-cyber-green font-bold py-3 rounded-lg hover:bg-cyber-green/20 transition-all tracking-widest text-sm uppercase"
-          >
+          <button id="btnStart" onclick="handleLogin()"
+            class="btn-cyber w-full bg-cyber-green/10 border border-cyber-green text-cyber-green font-bold py-3 rounded-lg hover:bg-cyber-green/20 transition-all tracking-widest text-sm uppercase">
             ▶ INITIATE CHALLENGE
           </button>
           <p id="loginError" class="text-cyber-red text-xs mt-3 hidden glow-red"></p>
@@ -365,10 +422,12 @@
     <!-- ══════════════════════════════════════════════════════════ -->
     <section id="phaseFix" class="phase-container hidden">
       <!-- Status Bar -->
-      <div class="flex flex-wrap items-center justify-between gap-4 mb-6 bg-cyber-panel border border-cyber-border rounded-lg px-4 py-3">
+      <div
+        class="flex flex-wrap items-center justify-between gap-4 mb-6 bg-cyber-panel border border-cyber-border rounded-lg px-4 py-3">
         <div class="flex items-center gap-3">
           <span class="w-2 h-2 rounded-full bg-cyber-green animate-pulse"></span>
-          <span class="text-xs text-gray-400">User: <span id="fixUsername" class="text-cyber-green font-bold">—</span></span>
+          <span class="text-xs text-gray-400">User: <span id="fixUsername"
+              class="text-cyber-green font-bold">—</span></span>
         </div>
         <div class="flex items-center gap-4">
           <div class="text-center">
@@ -407,21 +466,14 @@
           <h2 class="text-sm font-bold text-gray-300 tracking-widest uppercase">Your Fix</h2>
           <span id="autoSaveStatus" class="text-[10px] text-gray-600 ml-auto">Auto-saving...</span>
         </div>
-        <textarea
-          id="fixTextarea"
-          rows="12"
+        <textarea id="fixTextarea" rows="12"
           placeholder="class Solution {&#10;    public boolean isSafeFlight(...) {&#10;        // Fix the bugs here...&#10;    }&#10;}"
-          spellcheck="false"
-          class="w-full rounded-lg p-4 text-sm leading-relaxed"
-        ></textarea>
+          spellcheck="false" class="w-full rounded-lg p-4 text-sm leading-relaxed"></textarea>
       </div>
 
       <!-- Submit Fix Button -->
-      <button
-        id="btnSubmitFix"
-        onclick="handleSubmitFix()"
-        class="btn-cyber w-full bg-cyber-green/10 border border-cyber-green text-cyber-green font-bold py-3 rounded-lg hover:bg-cyber-green/20 transition-all tracking-widest text-sm uppercase"
-      >
+      <button id="btnSubmitFix" onclick="handleSubmitFix()"
+        class="btn-cyber w-full bg-cyber-green/10 border border-cyber-green text-cyber-green font-bold py-3 rounded-lg hover:bg-cyber-green/20 transition-all tracking-widest text-sm uppercase">
         ▶ SUBMIT FIX EARLY &amp; PROCEED TO EXPLANATION
       </button>
     </section>
@@ -431,10 +483,12 @@
     <!-- ══════════════════════════════════════════════════════════ -->
     <section id="phaseExplain" class="phase-container hidden">
       <!-- Status Bar -->
-      <div class="flex flex-wrap items-center justify-between gap-4 mb-6 bg-cyber-panel border border-cyber-border rounded-lg px-4 py-3">
+      <div
+        class="flex flex-wrap items-center justify-between gap-4 mb-6 bg-cyber-panel border border-cyber-border rounded-lg px-4 py-3">
         <div class="flex items-center gap-3">
           <span class="w-2 h-2 rounded-full bg-cyber-amber animate-pulse"></span>
-          <span class="text-xs text-gray-400">User: <span id="explainUsername" class="text-cyber-green font-bold">—</span></span>
+          <span class="text-xs text-gray-400">User: <span id="explainUsername"
+              class="text-cyber-green font-bold">—</span></span>
         </div>
         <div class="flex items-center gap-4">
           <div class="text-center">
@@ -455,12 +509,8 @@
           <span class="text-gray-500">🔒</span>
           <h2 class="text-sm font-bold text-gray-500 tracking-widest uppercase">Your Submitted Fix (Locked)</h2>
         </div>
-        <textarea
-          id="lockedFixDisplay"
-          rows="8"
-          readonly
-          class="w-full rounded-lg p-4 text-sm leading-relaxed opacity-60"
-        ></textarea>
+        <textarea id="lockedFixDisplay" rows="8" readonly
+          class="w-full rounded-lg p-4 text-sm leading-relaxed opacity-60"></textarea>
       </div>
 
       <!-- Explanation Textarea -->
@@ -470,16 +520,11 @@
           <h2 class="text-sm font-bold text-gray-300 tracking-widest uppercase">Logic Defense</h2>
         </div>
         <p class="text-xs text-gray-500 mb-3">
-          Explain your reasoning. Why did you change each transition? 
+          Explain your reasoning. Why did you change each transition?
           <span class="text-cyber-amber font-bold">Must be 50-150 words.</span> Paste is disabled.
         </p>
-        <textarea
-          id="explanationTextarea"
-          rows="10"
-          placeholder="Explain your reasoning for each transition change..."
-          spellcheck="false"
-          class="w-full rounded-lg p-4 text-sm leading-relaxed"
-        ></textarea>
+        <textarea id="explanationTextarea" rows="10" placeholder="Explain your reasoning for each transition change..."
+          spellcheck="false" class="w-full rounded-lg p-4 text-sm leading-relaxed"></textarea>
       </div>
 
       <!-- Word count indicator -->
@@ -494,12 +539,8 @@
       </div>
 
       <!-- Final Submit Button -->
-      <button
-        id="btnFinalSubmit"
-        onclick="handleFinalSubmit()"
-        disabled
-        class="btn-cyber w-full bg-gray-800 border border-gray-700 text-gray-500 font-bold py-3 rounded-lg cursor-not-allowed transition-all tracking-widest text-sm uppercase"
-      >
+      <button id="btnFinalSubmit" onclick="handleFinalSubmit()" disabled
+        class="btn-cyber w-full bg-gray-800 border border-gray-700 text-gray-500 font-bold py-3 rounded-lg cursor-not-allowed transition-all tracking-widest text-sm uppercase">
         🔒 FINAL SUBMIT (NEED 50-150 WORDS)
       </button>
     </section>
@@ -512,12 +553,14 @@
         <div class="text-6xl mb-6">✅</div>
         <h2 class="font-display text-2xl text-cyber-green font-bold glow-green mb-4">SUBMISSION COMPLETE</h2>
         <p class="text-gray-400 text-sm mb-6 max-w-md mx-auto">
-          Your fix and explanation have been recorded. The results will be compiled after the event window closes at 17:00 IST.
+          Your fix and explanation have been recorded. The results will be compiled after the event window closes at
+          17:00 IST.
         </p>
         <div class="bg-[#080c18] border border-cyber-border rounded-lg p-4 text-left max-w-sm mx-auto">
           <p class="text-[10px] text-gray-600 tracking-widest mb-2">SESSION SUMMARY</p>
           <p class="text-xs text-gray-400">User: <span id="doneUsername" class="text-cyber-green font-bold">—</span></p>
-          <p class="text-xs text-gray-400">Tab Switches: <span id="doneTabSwitches" class="text-cyber-amber font-bold">0</span></p>
+          <p class="text-xs text-gray-400">Tab Switches: <span id="doneTabSwitches"
+              class="text-cyber-amber font-bold">0</span></p>
           <p class="text-xs text-gray-400">Status: <span class="text-cyber-green font-bold">SUBMITTED</span></p>
         </div>
       </div>
@@ -561,14 +604,14 @@
     // ──────────────────────────────────────────────────────────────
     //  DOM REFERENCES
     // ──────────────────────────────────────────────────────────────
-    const $  = (id) => document.getElementById(id);
+    const $ = (id) => document.getElementById(id);
     const sections = {
-      lobby:   $("phaseLobby"),
-      login:   $("phaseLogin"),
-      fix:     $("phaseFix"),
+      lobby: $("phaseLobby"),
+      login: $("phaseLogin"),
+      fix: $("phaseFix"),
       explain: $("phaseExplain"),
-      done:    $("phaseDone"),
-      ended:   $("phaseEnded"),
+      done: $("phaseDone"),
+      ended: $("phaseEnded"),
     };
 
     // Client-side canvas rendering of the problem statement (prevents copy-paste)
@@ -587,7 +630,7 @@
         "║  Rules:                                                      ║",
         "║  - Starts at (0,0) with initialBattery units.                ║",
         "║  - Safe zone: -maxRange to +maxRange on both axes.           ║",
-        "║  - Fail if battery < 0 or |x|/|y| > maxRange.                ║",
+        "║  - Fail if battery < 0 or |x| or |y| > maxRange.             ║",
         "║  - Return true if drone completes all commands safely.       ║",
         "║                                                              ║",
         "║  Example 1: 'NNENW', battery=6, range=3 -> true              ║",
@@ -602,30 +645,30 @@
         "║                                                              ║",
         "╚══════════════════════════════════════════════════════════════╝"
       ];
-      
+
       const canvas = document.createElement("canvas");
       const lineHeight = 22;
       const padding = 30;
       const fontSize = 15;
-      
+
       const canvasWidth = 720;
       const canvasHeight = lines.length * lineHeight + padding * 2;
-      
+
       canvas.width = canvasWidth;
       canvas.height = canvasHeight;
       const ctx = canvas.getContext("2d");
-      
+
       ctx.fillStyle = "#0a0e1a";
       ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-      
+
       ctx.strokeStyle = "#00ff8855";
       ctx.lineWidth = 2;
       ctx.strokeRect(4, 4, canvasWidth - 8, canvasHeight - 8);
-      
+
       ctx.font = `${fontSize}px monospace`;
       ctx.fillStyle = "#00ff88";
       ctx.textBaseline = "top";
-      
+
       lines.forEach((line, i) => {
         if (line.includes("BUG")) {
           ctx.fillStyle = "#ff4444";
@@ -636,7 +679,7 @@
         }
         ctx.fillText(line, padding, padding + i * lineHeight);
       });
-      
+
       return canvas.toDataURL("image/png");
     }
 
@@ -861,7 +904,7 @@
       const name = $("nameInput").value.trim();
       const github = $("githubInput").value.trim();
       const language = $("languageSelect").value;
-      
+
       if (!name || !github) {
         showLoginError("Please enter your name and GitHub username.");
         return;
@@ -923,7 +966,7 @@
           userTimeRemainingMs = res.data.timeRemainingMs;
           explainTimeRemainingMs = res.data.explainTimeRemainingMs;
           globalTimeRemainingMs = res.data.globalTimeRemainingMs;
-          
+
           let defaultCode = "";
           if (res.data.language === "C++") {
             defaultCode = `#include <string>\n#include <cmath>\n\nusing namespace std;\n\nclass Solution {\npublic:\n    bool isSafeFlight(string commands, int initialBattery, int maxRange) {\n        int currentX = 0;\n        int currentY = 0;\n        int batteryRemaining = initialBattery;\n        int totalStepsTaken = 0;\n\n        for (char cmd : commands) {\n            // Maybe flaw is here\n            if (batteryRemaining <= 0) {\n                return false;\n            }\n            \n            if (cmd == 'N') {\n                currentY += 1;\n            } else if (cmd == 'S') {\n                currentY -= 1;\n            } else if (cmd == 'E') {\n                currentX += 1;\n            } else if (cmd == 'W') {\n                // Maybe flaw is here\n                currentY -= 1; \n            }\n            \n            batteryRemaining--;\n            totalStepsTaken++;\n\n            // Maybe flaw is here\n            if (currentX > maxRange || currentY > maxRange || currentX < 0 || currentY < 0) {\n                return false;\n            }\n        }\n        \n        return true;\n    }\n};`;
@@ -932,7 +975,7 @@
           } else if (res.data.language === "Java") {
             defaultCode = `class Solution {\n    public boolean isSafeFlight(String commands, int initialBattery, int maxRange) {\n        int currentX = 0;\n        int currentY = 0;\n        int batteryRemaining = initialBattery;\n        int totalStepsTaken = 0;\n\n        for (int i = 0; i < commands.length(); i++) {\n            char cmd = commands.charAt(i);\n            \n            // Maybe flaw is here\n            if (batteryRemaining <= 0) {\n                return false;\n            }\n\n            if (cmd == 'N') {\n                currentY += 1;\n            } else if (cmd == 'S') {\n                currentY -= 1;\n            } else if (cmd == 'E') {\n                currentX += 1;\n            } else if (cmd == 'W') {\n                // Maybe flaw is here\n                currentY -= 1;\n            }\n\n            batteryRemaining--;\n            totalStepsTaken++;\n\n            // Maybe flaw is here\n            if (currentX > maxRange || currentY > maxRange || currentX < 0 || currentY < 0) {\n                return false;\n            }\n        }\n\n        return true;\n    }\n}`;
           }
-          
+
           showFixPhase(defaultCode);
         }
       } catch (err) {
@@ -992,7 +1035,7 @@
         $("explanationTextarea").value = existingExplanation;
         updateWordCount();
       }
-      
+
       // Start explain timer
       clearInterval(explainTimerInterval);
       explainTimerInterval = setInterval(() => {
@@ -1148,7 +1191,7 @@
       async function check() {
         try {
           const data = await apiFetch("/api/phase");
-          
+
           $("connDot").classList.remove("bg-cyber-red");
           $("connDot").classList.add("bg-cyber-green");
           $("connStatus").textContent = "Connected";
@@ -1198,4 +1241,5 @@
     });
   </script>
 </body>
+
 </html>
