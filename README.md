@@ -60,10 +60,10 @@ The server will start on **http://localhost:3000** in local development mode. In
 
 ## 🕐 Event Flow
 
-The entire event runs within a **strict 60-minute window** from **16:00 IST to 17:00 IST**.
+The entire event runs within a **strict 60-minute window** from **18:00 IST to 19:00 IST**.
 
 ```
-16:00 IST                                              17:00 IST
+18:00 IST                                              19:00 IST
    │                                                       │
    ▼                                                       ▼
    ┌──────────────────────────────────────────────────────┐
@@ -92,12 +92,12 @@ The entire event runs within a **strict 60-minute window** from **16:00 IST to 1
 
 | Phase | Description |
 |---|---|
-| **Lobby** | Before 16:00 IST — countdown timer shown, no login allowed |
-| **Login** | 16:00 IST — API polling shifts lobby into login screen |
+| **Lobby** | Before 18:00 IST — countdown timer shown, no login allowed |
+| **Login** | 18:00 IST — API polling shifts lobby into login screen |
 | **Fix Phase** | 15 minutes per user — fix the broken code for the Drone Path Validator |
 | **Explanation** | 10 minutes per user — write a 50-150 word logic defense |
 | **Done** | Submission complete — user sees confirmation |
-| **Event Ended** | 17:00 IST — all entries locked globally |
+| **Event Ended** | 19:00 IST — all entries locked globally |
 
 ---
 
