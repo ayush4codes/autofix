@@ -31,7 +31,7 @@ app.use((req, res, next) => {
 // ============================================================================
 
 const TEST_MODE = false;
-const USER_TIMER_MS = 10 * 60 * 1000;      // 10 minutes for fix phase
+const USER_TIMER_MS = 15 * 60 * 1000;      // 15 minutes for fix phase
 const EXPLAIN_TIMER_MS = 10 * 60 * 1000;   // 10 minutes for explanation phase
 const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
 
@@ -178,16 +178,16 @@ async function getTodayEventWindow() {
   const month = nowIST.getMonth();
   const day = nowIST.getDate();
 
-  // 18:00 IST in UTC
-  const startIST = new Date(year, month, day, 18, 0, 0, 0);
+  // 16:00 IST in UTC
+  const startIST = new Date(year, month, day, 16, 0, 0, 0);
   const startUTC = new Date(startIST.getTime() - IST_OFFSET_MS - new Date().getTimezoneOffset() * 60000);
 
-  // 19:00 IST in UTC
-  const endIST = new Date(year, month, day, 19, 0, 0, 0);
+  // 17:00 IST in UTC
+  const endIST = new Date(year, month, day, 17, 0, 0, 0);
   const endUTC = new Date(endIST.getTime() - IST_OFFSET_MS - new Date().getTimezoneOffset() * 60000);
 
-  // 19:01 IST in UTC (for data export)
-  const exportIST = new Date(year, month, day, 19, 1, 0, 0);
+  // 17:01 IST in UTC (for data export)
+  const exportIST = new Date(year, month, day, 17, 1, 0, 0);
   const exportUTC = new Date(exportIST.getTime() - IST_OFFSET_MS - new Date().getTimezoneOffset() * 60000);
 
   return {

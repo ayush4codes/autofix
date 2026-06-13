@@ -2,7 +2,7 @@
 
 > A serverless, real-time, anti-cheat competitive programming event platform built for Vercel, Express, and MongoDB.
 
-Participants race against the clock to fix a bug in System Throughput Optimization code within a strict global event window. The app features secure client-side canvas rendering (no copy-paste), tab switch monitoring, and automatic persistence.
+Participants race against the clock to fix bugs in Drone Path Validator code within a strict global event window. The app features secure client-side canvas rendering (no copy-paste), tab switch monitoring, and automatic persistence.
 
 ---
 
@@ -60,10 +60,10 @@ The server will start on **http://localhost:3000** in local development mode. In
 
 ## 🕐 Event Flow
 
-The entire event runs within a **strict 60-minute window** from **18:00 IST to 19:00 IST**.
+The entire event runs within a **strict 60-minute window** from **16:00 IST to 17:00 IST**.
 
 ```
-18:00 IST                                              19:00 IST
+16:00 IST                                              17:00 IST
    │                                                       │
    ▼                                                       ▼
    ┌──────────────────────────────────────────────────────┐
@@ -71,7 +71,7 @@ The entire event runs within a **strict 60-minute window** from **18:00 IST to 1
    │                                                      │
    │  User joins at any point ──┐                         │
    │                            ▼                         │
-   │                 ┌── 10 min Fix ──┐                   │
+   │                 ┌── 15 min Fix ──┐                   │
    │                 │  Write answer  │                   │
    │                 └───────┬────────┘                   │
    │                         ▼                            │
@@ -92,12 +92,12 @@ The entire event runs within a **strict 60-minute window** from **18:00 IST to 1
 
 | Phase | Description |
 |---|---|
-| **Lobby** | Before 18:00 IST — countdown timer shown, no login allowed |
-| **Login** | 18:00 IST — API polling shifts lobby into login screen |
-| **Fix Phase** | 10 minutes per user — fix the broken code for System Throughput Optimization |
+| **Lobby** | Before 16:00 IST — countdown timer shown, no login allowed |
+| **Login** | 16:00 IST — API polling shifts lobby into login screen |
+| **Fix Phase** | 15 minutes per user — fix the broken code for the Drone Path Validator |
 | **Explanation** | 10 minutes per user — write a 50-150 word logic defense |
 | **Done** | Submission complete — user sees confirmation |
-| **Event Ended** | 19:00 IST — all entries locked globally |
+| **Event Ended** | 17:00 IST — all entries locked globally |
 
 ---
 
@@ -112,7 +112,7 @@ The entire event runs within a **strict 60-minute window** from **18:00 IST to 1
 | **Tab Switch Tracking** | `visibilitychange` API tracks switches, sends counts to the server, and flashes a warning banner. |
 | **DevTools Blocked** | `F12`, `Ctrl+Shift+I/J/C`, and `Cmd+Option+I/J/C` intercepted. |
 | **Camera Deterrent** | Camera permission is requested at login to create a "serious environment", though video is not recorded or transmitted. |
-| **Server-Side Timer** | 10-minute locks enforced server-side, not just in the UI. |
+| **Server-Side Timer** | 15-minute locks enforced server-side, not just in the UI. |
 
 ---
 
@@ -148,7 +148,7 @@ Key configuration constants are in `api/server.js`:
 
 | Constant | Default | Description |
 |---|---|---|
-| `USER_TIMER_MS` | `10 * 60 * 1000` (10m) | Duration for fix phase |
+| `USER_TIMER_MS` | `15 * 60 * 1000` (15m) | Duration for fix phase |
 | `EXPLAIN_TIMER_MS` | `10 * 60 * 1000` (10m) | Duration for explanation phase |
 | `TEST_MODE` | `false` | Enable simulated fast-event timelines |
 
