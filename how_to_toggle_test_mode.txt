@@ -1,0 +1,23 @@
+How to Turn Test Mode ON and OFF
+================================
+
+The test mode for the Automata Fix Challenge is controlled by a constant variable inside the serverless API file.
+
+Follow these steps to toggle the test mode:
+
+1. Open the file `api/server.js` located in the `api` directory of the project.
+2. Scroll to the `//  CONFIGURATION` section near the top of the file (around line 30).
+3. Look for the following line of code:
+   `const TEST_MODE = false;`
+
+To Turn ON Test Mode:
+- Change the value to `true`:
+  `const TEST_MODE = true;`
+
+To Turn OFF Test Mode:
+- Change the value to `false`:
+  `const TEST_MODE = false;`
+
+After making the change, save the `api/server.js` file. If running locally, restart the local development server (`npm run dev`) for the changes to take effect. If deploying to Vercel, push the changes to trigger a new build.
+
+Note: When test mode is active, the event uses a simulated time window (starts in 5 minutes and lasts for 4 minutes), which is useful for testing without waiting for the actual scheduled time.

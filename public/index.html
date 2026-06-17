@@ -1,0 +1,2364 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Automata Fix Challenge — Live Event</title>
+  <meta name="description"
+    content="Real-time competitive Automata Fix programming challenge. Fix the broken Drone Path Validator code in 15 minutes." />
+
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            cyber: {
+              dark: '#0a0e1a',
+              panel: '#0d1225',
+              border: '#1a2340',
+              green: '#00ff88',
+              greenDim: '#00cc6a',
+              red: '#ff4444',
+              amber: '#ffcc00',
+              blue: '#00b4ff',
+              purple: '#a855f7',
+            }
+          },
+          fontFamily: {
+            mono: ['"JetBrains Mono"', '"Fira Code"', 'monospace'],
+            display: ['"Orbitron"', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Orbitron:wght@400;500;600;700;800;900&display=swap"
+    rel="stylesheet" />
+
+  <!-- Vercel serverless build compatible -->
+
+  <style>
+    /* ── Global Styles ── */
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      background: #0a0e1a;
+      color: #e0e0e0;
+      font-family: 'JetBrains Mono', monospace;
+      overflow-x: hidden;
+    }
+
+    /* ── Animated background grid ── */
+    .bg-grid {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      background-image:
+        linear-gradient(rgba(0, 255, 136, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 255, 136, 0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      animation: gridScroll 20s linear infinite;
+    }
+
+    @keyframes gridScroll {
+      0% {
+        transform: translate(0, 0);
+      }
+
+      100% {
+        transform: translate(40px, 40px);
+      }
+    }
+
+    /* ── Scanline overlay ── */
+    .scanlines {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      background: repeating-linear-gradient(0deg,
+          transparent,
+          transparent 2px,
+          rgba(0, 0, 0, 0.08) 2px,
+          rgba(0, 0, 0, 0.08) 4px);
+    }
+
+    /* ── Glow effects ── */
+    .glow-green {
+      text-shadow: 0 0 10px #00ff88, 0 0 40px #00ff8833;
+    }
+
+    .glow-red {
+      text-shadow: 0 0 10px #ff4444, 0 0 40px #ff444433;
+    }
+
+    .glow-amber {
+      text-shadow: 0 0 10px #ffcc00, 0 0 40px #ffcc0033;
+    }
+
+    .glow-purple {
+      text-shadow: 0 0 10px #a855f7, 0 0 40px #a855f733;
+    }
+
+    .box-glow-green {
+      box-shadow: 0 0 15px rgba(0, 255, 136, 0.15), inset 0 0 15px rgba(0, 255, 136, 0.05);
+    }
+
+    .box-glow-red {
+      box-shadow: 0 0 20px rgba(255, 68, 68, 0.3), inset 0 0 15px rgba(255, 68, 68, 0.05);
+    }
+
+    /* ── Pulse animation for warnings ── */
+    @keyframes pulse-glow {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.5;
+      }
+    }
+
+    .pulse-glow {
+      animation: pulse-glow 1.5s ease-in-out infinite;
+    }
+
+    /* ── Typing cursor blink ── */
+    @keyframes blink {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0;
+      }
+    }
+
+    .cursor-blink::after {
+      content: '█';
+      animation: blink 0.8s step-end infinite;
+      color: #00ff88;
+    }
+
+    /* ── Countdown digits styling ── */
+    .countdown-digit {
+      display: inline-block;
+      min-width: 2.5ch;
+      text-align: center;
+      background: rgba(0, 255, 136, 0.08);
+      border: 1px solid rgba(0, 255, 136, 0.2);
+      border-radius: 6px;
+      padding: 0.2em 0.4em;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ── Problem image container ── */
+    .problem-img {
+      image-rendering: pixelated;
+      border: 1px solid #1a2340;
+      border-radius: 4px;
+    }
+
+    /* ── Textarea styling ── */
+    textarea {
+      resize: vertical;
+      background: #080c18 !important;
+      border: 1px solid #1a2340 !important;
+      color: #00ff88 !important;
+      font-family: 'JetBrains Mono', monospace !important;
+      caret-color: #00ff88;
+      transition: border-color 0.3s;
+    }
+
+    textarea:focus {
+      border-color: #00ff88 !important;
+      outline: none;
+      box-shadow: 0 0 10px rgba(0, 255, 136, 0.1);
+    }
+
+    textarea[readonly] {
+      opacity: 0.6;
+      cursor: not-allowed;
+      color: #888 !important;
+    }
+
+    /* ── Button styles ── */
+    .btn-cyber {
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s;
+    }
+
+    .btn-cyber::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent);
+      transition: left 0.5s;
+    }
+
+    .btn-cyber:hover::before {
+      left: 100%;
+    }
+
+    /* ── Phase transition fade ── */
+    .phase-container {
+      animation: fadeIn 0.5s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* ── Anti-cheat warning flash ── */
+    @keyframes redFlash {
+      0% {
+        background: rgba(255, 0, 0, 0.2);
+      }
+
+      100% {
+        background: transparent;
+      }
+    }
+
+    .red-flash {
+      animation: redFlash 0.5s ease-out;
+    }
+
+    /* ── Scrollbar styling ── */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #0a0e1a;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #1a2340;
+      border-radius: 3px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #00ff88;
+    }
+
+    /* ── Word count bar ── */
+    .word-bar {
+      height: 4px;
+      background: #1a2340;
+      border-radius: 2px;
+      overflow: hidden;
+      transition: all 0.3s;
+    }
+
+    .word-bar-fill {
+      height: 100%;
+      border-radius: 2px;
+      transition: width 0.3s, background 0.3s;
+    }
+
+    /* ── Proctoring HUD & Flash Effects ── */
+    .red-flash::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      pointer-events: none;
+      background: rgba(255, 68, 68, 0.25);
+      box-shadow: inset 0 0 100px rgba(255, 68, 68, 0.8);
+      animation: flash-out 0.8s ease-out forwards;
+    }
+    
+    @keyframes flash-out {
+      0% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+
+    /* ── SVG drawing and rotation animations ── */
+    @keyframes stroke-circle {
+      100% { stroke-dashoffset: 0; }
+    }
+    @keyframes stroke-check {
+      100% { stroke-dashoffset: 0; }
+    }
+    @keyframes spin-hand {
+      to { transform: rotate(360deg); }
+    }
+    .checkmark-circle {
+      stroke-dasharray: 166;
+      stroke-dashoffset: 166;
+      animation: stroke-circle 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+    }
+    .checkmark-check {
+      stroke-dasharray: 48;
+      stroke-dashoffset: 48;
+      animation: stroke-check 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.6s forwards;
+    }
+    .clock-hand-anim {
+      transform-origin: 12px 12px;
+      animation: spin-hand 8s linear infinite;
+    }
+  </style>
+</head>
+
+<body class="min-h-screen relative">
+  <!-- Background layers -->
+  <div class="bg-grid"></div>
+  <div class="scanlines"></div>
+
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- ANTI-CHEAT WARNING BANNER (hidden by default) -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <div id="anticheatBanner" class="fixed top-0 left-0 right-0 z-50 hidden">
+    <div class="bg-red-900/90 border-b-2 border-cyber-red text-center py-3 px-4">
+      <span class="text-cyber-red font-bold text-sm glow-red pulse-glow flex items-center justify-center gap-2" id="anticheatMsg">
+        <svg class="w-5 h-5 text-cyber-red animate-pulse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+          <line x1="12" y1="9" x2="12" y2="13" />
+          <line x1="12" y1="17" x2="12.01" y2="17" />
+        </svg>
+        SECURITY WARNING — YOUR ACTIVITY IS BEING MONITORED
+      </span>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- MAIN CONTENT WRAPPER -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <div class="relative z-10 max-w-5xl mx-auto px-4 py-8">
+
+    <!-- ── HEADER (always visible) ── -->
+    <header class="text-center mb-8">
+      <h1 class="font-display text-3xl md:text-4xl font-black tracking-widest glow-green text-cyber-green mb-2">
+        AUTOMATA FIX
+      </h1>
+      <p class="text-xs text-gray-500 tracking-[0.3em] uppercase">
+        Competitive Programming Event &middot; Real-Time Challenge
+      </p>
+      <!-- Connection status -->
+      <div class="mt-3 flex items-center justify-center gap-2 text-xs">
+        <span id="connDot" class="w-2 h-2 rounded-full bg-cyber-green"></span>
+        <span id="connStatus" class="text-gray-500">Connected</span>
+      </div>
+    </header>
+
+    <!-- ══════════════════════════════════════════════════════════ -->
+    <!-- PHASE 0: LOBBY — Countdown to 18:00 IST                 -->
+    <!-- ══════════════════════════════════════════════════════════ -->
+    <section id="phaseLobby" class="phase-container hidden">
+      <div class="bg-cyber-panel border border-cyber-border rounded-xl p-8 md:p-12 text-center box-glow-green">
+        <!-- Decorative top bar -->
+        <div class="flex justify-center gap-1 mb-6">
+          <span class="w-3 h-3 rounded-full bg-cyber-red"></span>
+          <span class="w-3 h-3 rounded-full bg-cyber-amber"></span>
+          <span class="w-3 h-3 rounded-full bg-cyber-green"></span>
+        </div>
+
+        <div class="mb-6">
+          <p class="text-gray-400 text-sm mb-1 tracking-widest uppercase">System Status</p>
+          <p class="text-cyber-amber text-lg font-bold glow-amber">STANDBY — AWAITING EVENT WINDOW</p>
+        </div>
+
+        <div class="mb-8">
+          <p class="text-gray-500 text-xs mb-3 tracking-widest">EVENT BEGINS IN</p>
+          <div id="lobbyCountdown" class="font-display text-5xl md:text-6xl font-black text-cyber-green glow-green">
+            <span class="countdown-digit" id="lobbyH">00</span>
+            <span class="text-gray-600 mx-1">:</span>
+            <span class="countdown-digit" id="lobbyM">00</span>
+            <span class="text-gray-600 mx-1">:</span>
+            <span class="countdown-digit" id="lobbyS">00</span>
+          </div>
+        </div>
+
+        <div class="border-t border-cyber-border pt-6">
+          <p class="text-gray-500 text-xs leading-relaxed max-w-md mx-auto">
+            The challenge opens at <span class="text-cyber-green font-bold">18:00 IST</span> sharp.<br />
+            Once live, you'll have <span class="text-cyber-amber font-bold">15 minutes</span> to fix broken code.<br />
+            All activity is monitored. No second chances.
+          </p>
+          <div class="mt-6 flex flex-wrap justify-center gap-3">
+            <button onclick="testStartEvent()"
+              class="px-5 py-2.5 bg-cyber-green/10 border border-cyber-green text-cyber-green font-bold rounded-lg hover:bg-cyber-green/20 transition-all tracking-widest text-[10px] uppercase shadow-md hover:shadow-cyber-green/10">
+              ▶ Force Start Event Now
+            </button>
+            <button onclick="testResetEvent()"
+              class="px-5 py-2.5 bg-cyber-red/10 border border-cyber-red text-cyber-red font-bold rounded-lg hover:bg-cyber-red/20 transition-all tracking-widest text-[10px] uppercase shadow-md hover:shadow-cyber-red/10">
+              ⚙ Reset Event &amp; Clear Users
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════════════ -->
+    <!-- PHASE 1: LOGIN — Enter Discord Username                  -->
+    <!-- ══════════════════════════════════════════════════════════ -->
+    <section id="phaseLogin" class="phase-container hidden">
+      <div class="bg-cyber-panel border border-cyber-border rounded-xl p-8 md:p-12 text-center box-glow-green">
+        <div class="flex justify-center gap-1 mb-6">
+          <span class="w-3 h-3 rounded-full bg-cyber-green animate-pulse"></span>
+          <span class="w-3 h-3 rounded-full bg-cyber-green animate-pulse" style="animation-delay:0.2s"></span>
+          <span class="w-3 h-3 rounded-full bg-cyber-green animate-pulse" style="animation-delay:0.4s"></span>
+        </div>
+
+        <p class="text-cyber-green text-lg font-bold glow-green mb-1">EVENT IS LIVE</p>
+        <p class="text-gray-500 text-xs mb-8 tracking-widest">AUTHENTICATE TO PROCEED</p>
+
+        <!-- Global time remaining -->
+        <div class="mb-6">
+          <p class="text-gray-600 text-xs mb-1">GLOBAL WINDOW CLOSES IN</p>
+          <span id="loginGlobalTimer" class="font-display text-xl text-cyber-amber glow-amber font-bold">60:00</span>
+        </div>
+
+        <div class="max-w-sm mx-auto space-y-4">
+          <div>
+            <label for="nameInput" class="block text-left text-xs text-gray-500 mb-2 tracking-widest uppercase">
+              Full Name
+            </label>
+            <input type="text" id="nameInput" placeholder="John Doe" maxlength="40" autocomplete="off"
+              spellcheck="false"
+              class="w-full bg-[#080c18] border border-cyber-border rounded-lg px-4 py-3 text-cyber-green font-mono text-sm focus:border-cyber-green focus:outline-none focus:ring-1 focus:ring-cyber-green/30 transition-all placeholder-gray-700" />
+          </div>
+          <div>
+            <label for="githubInput" class="block text-left text-xs text-gray-500 mb-2 tracking-widest uppercase">
+              GitHub Username
+            </label>
+            <input type="text" id="githubInput" placeholder="github_user" maxlength="40" autocomplete="off"
+              spellcheck="false"
+              class="w-full bg-[#080c18] border border-cyber-border rounded-lg px-4 py-3 text-cyber-green font-mono text-sm focus:border-cyber-green focus:outline-none focus:ring-1 focus:ring-cyber-green/30 transition-all placeholder-gray-700" />
+          </div>
+          <div>
+            <label for="languageSelect" class="block text-left text-xs text-gray-500 mb-2 tracking-widest uppercase">
+              Programming Language
+            </label>
+            <select id="languageSelect"
+              class="w-full bg-[#080c18] border border-cyber-border rounded-lg px-4 py-3 text-cyber-green font-mono text-sm focus:border-cyber-green focus:outline-none focus:ring-1 focus:ring-cyber-green/30 transition-all">
+              <option value="C++">C++</option>
+              <option value="Java">Java</option>
+              <option value="Python">Python</option>
+            </select>
+          </div>
+
+          <button id="btnStart" onclick="handleLogin()"
+            class="btn-cyber w-full bg-cyber-green/10 border border-cyber-green text-cyber-green font-bold py-3 rounded-lg hover:bg-cyber-green/20 transition-all tracking-widest text-sm uppercase">
+            ▶ INITIATE CHALLENGE
+          </button>
+          <p id="loginError" class="text-cyber-red text-xs mt-3 hidden glow-red"></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════════════ -->
+    <!-- PHASE 1.5: DISCLAIMER — Proctoring Warnings (5 seconds)  -->
+    <!-- ══════════════════════════════════════════════════════════ -->
+    <section id="phaseDisclaimer" class="phase-container hidden">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 bg-cyber-panel border border-cyber-border rounded-xl p-6 md:p-10 box-glow-green">
+        
+        <!-- Left Pane: Rules & Policies -->
+        <div class="flex flex-col justify-between border-r border-cyber-border/40 pr-0 md:pr-6 text-left">
+          <div>
+            <div class="flex items-center gap-3 mb-4">
+              <svg class="w-6 h-6 text-cyber-green animate-pulse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                <polyline points="22 4 12 14.01 9 11.01" stroke="#00ff88" />
+              </svg>
+              <h2 class="font-display text-lg text-cyber-green font-bold glow-green uppercase">Security Policy</h2>
+            </div>
+            
+            <p class="text-xs text-gray-500 mb-6 tracking-wide leading-relaxed">
+              Before you attempt the exam, our automated proctoring module must calibrate your hardware and environmental feed.
+            </p>
+
+            <div class="space-y-4 max-w-md">
+              <div class="flex gap-3">
+                <span class="text-cyber-green font-mono text-sm">01</span>
+                <div>
+                  <h4 class="text-xs font-bold text-gray-300 uppercase">Webcam & Microphone</h4>
+                  <p class="text-[10px] text-gray-500">Live feed is monitored for talking, whispers, or secondary device usage.</p>
+                </div>
+              </div>
+              <div class="flex gap-3">
+                <span class="text-cyber-green font-mono text-sm">02</span>
+                <div>
+                  <h4 class="text-xs font-bold text-gray-300 uppercase">Eye & Focus Alignment</h4>
+                  <p class="text-[10px] text-gray-500">Gaze direction is tracked. Do not look away or shift tabs.</p>
+                </div>
+              </div>
+              <div class="flex gap-3">
+                <span class="text-cyber-amber font-mono text-sm">03</span>
+                <div>
+                  <h4 class="text-xs font-bold text-gray-300 uppercase">360° Workspace Checks</h4>
+                  <p class="text-[10px] text-gray-500">Random fullscreen room scans will pause the exam at 1, 2, 4, and 8 min.</p>
+                </div>
+              </div>
+              <div class="flex gap-3">
+                <span class="text-cyber-red font-mono text-sm">04</span>
+                <div>
+                  <h4 class="text-xs font-bold text-gray-300 uppercase">Termination Penalty</h4>
+                  <p class="text-[10px] text-gray-500">Max 2 warnings. The 3rd violation locks the exam and deducts -25 points.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="mt-6 border-t border-cyber-border/40 pt-4">
+            <p class="text-[9px] font-mono text-gray-600">PROCTOR MODULE v1.0.4 &middot; DATA PERSISTED ON SERVER</p>
+          </div>
+        </div>
+
+        <!-- Right Pane: Hardware Calibration Dashboard -->
+        <div class="flex flex-col justify-between pl-0 md:pl-6 bg-[#080c18] border border-cyber-border rounded-lg p-6 text-left">
+          <div class="text-center md:text-left mb-4">
+            <h3 class="font-display text-xs font-bold text-cyber-amber tracking-widest uppercase mb-1">Hardware Diagnostics</h3>
+            <p class="text-[10px] text-gray-500">Align your camera and quiet your room now.</p>
+          </div>
+
+          <!-- Video Calibration Canvas -->
+          <div class="relative aspect-video w-full bg-black rounded-lg overflow-hidden border border-cyber-border mb-4">
+            <canvas id="calibrationCanvas" class="w-full h-full block"></canvas>
+            <div class="absolute inset-0 pointer-events-none flex items-center justify-center">
+              <div class="w-20 h-20 border border-dashed border-cyber-amber/30 rounded-full animate-spin"></div>
+              <div class="absolute w-2 h-2 bg-cyber-amber/50 rounded-full"></div>
+            </div>
+            <div class="absolute bottom-2 left-2 text-[8px] font-mono bg-[#0c1225]/85 text-cyber-amber px-2 py-0.5 rounded border border-cyber-amber/30">
+              STATUS: CALIBRATING
+            </div>
+          </div>
+
+          <!-- Diagnostics Checklist -->
+          <div class="space-y-2 mb-4">
+            <div class="flex items-center justify-between text-[10px] font-mono border-b border-cyber-border/40 pb-1">
+              <span class="text-gray-400">1. CAMERA FEED CONNECTED</span>
+              <span id="checkCamera" class="text-cyber-amber font-bold">CALIBRATING...</span>
+            </div>
+            <div class="flex items-center justify-between text-[10px] font-mono border-b border-cyber-border/40 pb-1">
+              <span class="text-gray-400">2. MICROPHONE NOISE LEVEL</span>
+              <span id="checkMicrophone" class="text-cyber-amber font-bold">CALIBRATING...</span>
+            </div>
+            <div class="flex items-center justify-between text-[10px] font-mono border-b border-cyber-border/40 pb-1">
+              <span class="text-gray-400">3. FACE POSITION ALIGNMENT</span>
+              <span id="checkFace" class="text-cyber-amber font-bold">CALIBRATING...</span>
+            </div>
+            <div class="flex items-center justify-between text-[10px] font-mono border-b border-cyber-border/40 pb-1">
+              <span class="text-gray-400">4. MOTION STABILITY STATUS</span>
+              <span id="checkStability" class="text-cyber-amber font-bold">CALIBRATING...</span>
+            </div>
+          </div>
+
+          <!-- Diagnostics Console Output -->
+          <div class="bg-[#0c1225] border border-cyber-border rounded px-3 py-2 font-mono text-[9px] text-cyber-amber mb-4 h-16 overflow-y-auto" id="diagnosticConsole">
+            Initializing diagnostic sensor hooks...
+          </div>
+
+          <!-- Progress bar / Start Button container -->
+          <div>
+            <!-- Progress Fill Bar -->
+            <div id="calibrationProgressContainer">
+              <div class="flex justify-between text-[10px] font-mono text-gray-500 mb-1">
+                <span>CALIBRATION PROGRESS</span>
+                <span id="calibrationProgressText">0%</span>
+              </div>
+              <div class="w-full bg-[#0c1225] h-2 rounded overflow-hidden border border-cyber-border mb-4">
+                <div id="calibrationProgressBar" class="h-full bg-cyber-amber transition-all duration-300" style="width: 0%"></div>
+              </div>
+            </div>
+
+            <!-- Start Buttons -->
+            <div id="calibrationButtons" class="flex gap-2">
+              <button disabled class="w-full bg-gray-800 border border-gray-700 text-gray-500 font-bold py-3 rounded-lg text-xs tracking-widest uppercase cursor-not-allowed">
+                Awaiting Calibration Check...
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════════════ -->
+    <!-- PHASE 2: FIX — Problem Image + Code Editor               -->
+    <!-- ══════════════════════════════════════════════════════════ -->
+    <section id="phaseFix" class="phase-container hidden">
+      <!-- Status Bar -->
+      <div
+        class="flex flex-wrap items-center justify-between gap-4 mb-6 bg-cyber-panel border border-cyber-border rounded-lg px-4 py-3">
+        <div class="flex items-center gap-3">
+          <span class="w-2 h-2 rounded-full bg-cyber-green animate-pulse"></span>
+          <span class="text-xs text-gray-400">User: <span id="fixUsername"
+              class="text-cyber-green font-bold">—</span></span>
+        </div>
+        <div class="flex items-center gap-4">
+          <div class="text-center">
+            <p class="text-[10px] text-gray-600 tracking-widest">YOUR TIME</p>
+            <span id="fixTimer" class="font-display text-lg text-cyber-green font-bold glow-green">15:00</span>
+          </div>
+          <div class="w-px h-8 bg-cyber-border"></div>
+          <div class="text-center">
+            <p class="text-[10px] text-gray-600 tracking-widest">GLOBAL</p>
+            <span id="fixGlobalTimer" class="font-display text-lg text-cyber-amber font-bold">60:00</span>
+          </div>
+          <div class="w-px h-8 bg-cyber-border"></div>
+          <div class="text-center" id="tabSwitchDisplay">
+            <p class="text-[10px] text-gray-600 tracking-widest">TAB SWITCHES</p>
+            <span id="tabSwitchCount" class="font-display text-lg text-gray-500 font-bold">0</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Problem Image -->
+      <div class="mb-6">
+        <div class="flex items-center gap-2 mb-3">
+          <span class="text-cyber-amber">◆</span>
+          <h2 class="text-sm font-bold text-gray-300 tracking-widest uppercase">Problem Statement</h2>
+          <span class="text-[10px] text-gray-600 ml-auto">RENDERED SERVER-SIDE &middot; NO COPY</span>
+        </div>
+        <div class="bg-cyber-panel border border-cyber-border rounded-lg p-4 overflow-x-auto">
+          <img id="problemImage" class="problem-img mx-auto max-w-full" alt="Automata Problem" draggable="false" />
+        </div>
+      </div>
+
+      <!-- Fix Code Textarea -->
+      <div class="mb-6">
+        <div class="flex items-center gap-2 mb-3">
+          <span class="text-cyber-green">◆</span>
+          <h2 class="text-sm font-bold text-gray-300 tracking-widest uppercase">Your Fix</h2>
+          <span id="autoSaveStatus" class="text-[10px] text-gray-600 ml-auto">Auto-saving...</span>
+        </div>
+        <textarea id="fixTextarea" rows="12"
+          placeholder="class Solution {&#10;    public boolean isSafeFlight(...) {&#10;        // Fix the bugs here...&#10;    }&#10;}"
+          spellcheck="false" class="w-full rounded-lg p-4 text-sm leading-relaxed"></textarea>
+      </div>
+
+      <!-- Submit Fix Button -->
+      <button id="btnSubmitFix" onclick="handleSubmitFix()"
+        class="btn-cyber w-full bg-cyber-green/10 border border-cyber-green text-cyber-green font-bold py-3 rounded-lg hover:bg-cyber-green/20 transition-all tracking-widest text-sm uppercase">
+        ▶ SUBMIT FIX EARLY &amp; PROCEED TO EXPLANATION
+      </button>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════════════ -->
+    <!-- PHASE 3: EXPLANATION — Logic Defense                     -->
+    <!-- ══════════════════════════════════════════════════════════ -->
+    <section id="phaseExplain" class="phase-container hidden">
+      <!-- Status Bar -->
+      <div
+        class="flex flex-wrap items-center justify-between gap-4 mb-6 bg-cyber-panel border border-cyber-border rounded-lg px-4 py-3">
+        <div class="flex items-center gap-3">
+          <span class="w-2 h-2 rounded-full bg-cyber-amber animate-pulse"></span>
+          <span class="text-xs text-gray-400">User: <span id="explainUsername"
+              class="text-cyber-green font-bold">—</span></span>
+        </div>
+        <div class="flex items-center gap-4">
+          <div class="text-center">
+            <p class="text-[10px] text-gray-600 tracking-widest">YOUR EXPLAIN TIME</p>
+            <span id="explainTimer" class="font-display text-lg text-cyber-purple font-bold glow-purple">10:00</span>
+          </div>
+          <div class="w-px h-8 bg-cyber-border"></div>
+          <div class="text-center">
+            <p class="text-[10px] text-gray-600 tracking-widest">GLOBAL</p>
+            <span id="explainGlobalTimer" class="font-display text-lg text-cyber-amber font-bold">60:00</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Locked Fix Display -->
+      <div class="mb-6">
+        <div class="flex items-center gap-2 mb-3">
+          <svg class="w-4 h-4 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+          </svg>
+          <h2 class="text-sm font-bold text-gray-500 tracking-widest uppercase">Your Submitted Fix (Locked)</h2>
+        </div>
+        <textarea id="lockedFixDisplay" rows="8" readonly
+          class="w-full rounded-lg p-4 text-sm leading-relaxed opacity-60"></textarea>
+      </div>
+
+      <!-- Explanation Textarea -->
+      <div class="mb-4">
+        <div class="flex items-center gap-2 mb-3">
+          <span class="text-cyber-purple">◆</span>
+          <h2 class="text-sm font-bold text-gray-300 tracking-widest uppercase">Logic Defense</h2>
+        </div>
+        <p class="text-xs text-gray-500 mb-3">
+          Explain your reasoning. Why did you change each transition?
+          <span class="text-cyber-amber font-bold">Must be 50-150 words.</span> Paste is disabled.
+        </p>
+        <textarea id="explanationTextarea" rows="10" placeholder="Explain your reasoning for each transition change..."
+          spellcheck="false" class="w-full rounded-lg p-4 text-sm leading-relaxed"></textarea>
+      </div>
+
+      <!-- Word count indicator -->
+      <div class="mb-6">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs text-gray-500">Word Count</span>
+          <span id="wordCountDisplay" class="text-xs font-bold text-gray-500">0 / 50-150</span>
+        </div>
+        <div class="word-bar">
+          <div id="wordBarFill" class="word-bar-fill bg-gray-600" style="width: 0%"></div>
+        </div>
+      </div>
+
+      <!-- Final Submit Button -->
+      <button id="btnFinalSubmit" onclick="handleFinalSubmit()" disabled
+        class="btn-cyber w-full bg-gray-800 border border-gray-700 text-gray-500 font-bold py-3 rounded-lg cursor-not-allowed transition-all tracking-widest text-sm uppercase">
+        [LOCKED] FINAL SUBMIT (NEED 50-150 WORDS)
+      </button>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════════════ -->
+    <!-- PHASE 4: DONE — Submission Complete                      -->
+    <!-- ══════════════════════════════════════════════════════════ -->
+    <section id="phaseDone" class="phase-container hidden">
+      <div class="bg-cyber-panel border border-cyber-green/30 rounded-xl p-8 md:p-12 text-center box-glow-green">
+        <div class="flex justify-center mb-6">
+          <svg class="w-20 h-20 text-cyber-green" viewBox="0 0 52 52" fill="none" stroke="currentColor" stroke-width="4">
+            <circle class="checkmark-circle" cx="26" cy="26" r="23" stroke="#00ff88" stroke-linecap="round" fill="none" />
+            <path class="checkmark-check" d="M14.1 27.2l7.1 7.2 16.7-16.8" stroke="#00ff88" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+          </svg>
+        </div>
+        <h2 class="font-display text-2xl text-cyber-green font-bold glow-green mb-4">SUBMISSION COMPLETE</h2>
+        <p class="text-gray-400 text-sm mb-6 max-w-md mx-auto">
+          Your fix and explanation have been recorded. The results will be compiled after the event window closes at
+          19:00 IST.
+        </p>
+        <div class="bg-[#080c18] border border-cyber-border rounded-lg p-4 text-left max-w-sm mx-auto">
+          <p class="text-[10px] text-gray-600 tracking-widest mb-2">SESSION SUMMARY</p>
+          <p class="text-xs text-gray-400">User: <span id="doneUsername" class="text-cyber-green font-bold">—</span></p>
+          <p class="text-xs text-gray-400">Tab Switches: <span id="doneTabSwitches"
+              class="text-cyber-amber font-bold">0</span></p>
+          <p class="text-xs text-gray-400">Status: <span class="text-cyber-green font-bold">SUBMITTED</span></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════════════ -->
+    <!-- PHASE 4.5: TERMINATED — Proctor Violations Lock Screen    -->
+    <!-- ══════════════════════════════════════════════════════════ -->
+    <section id="phaseTerminated" class="phase-container hidden">
+      <div class="bg-cyber-panel border-2 border-cyber-red/80 rounded-xl p-8 md:p-12 text-center box-glow-red">
+        <div class="flex justify-center mb-6">
+          <div class="relative w-24 h-24 flex items-center justify-center">
+            <div class="absolute inset-0 border border-cyber-red/20 rounded-full animate-ping" style="animation-duration: 3s"></div>
+            <div class="absolute inset-2 border-2 border-dashed border-cyber-red/40 rounded-full animate-spin" style="animation-duration: 10s"></div>
+            <svg class="w-14 h-14 text-cyber-red" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+              <line x1="12" y1="8" x2="12" y2="13" />
+              <line x1="12" y1="17" x2="12.01" y2="17" />
+            </svg>
+          </div>
+        </div>
+        <h2 class="font-display text-3xl text-cyber-red font-bold glow-red mb-4 uppercase">EXAM TERMINATED</h2>
+        <p class="text-cyber-amber text-xs tracking-widest mb-6 uppercase">Proctoring Violations Detected</p>
+        
+        <p class="text-gray-300 text-sm mb-6 max-w-md mx-auto leading-relaxed">
+          Your access has been revoked. The system detected continuous unusual activity, violating exam terms. 
+          Your answers have been locked.
+        </p>
+
+        <div class="bg-[#080c18] border border-cyber-red rounded-lg p-6 max-w-sm mx-auto space-y-3">
+          <p class="text-[10px] text-cyber-red font-bold tracking-widest uppercase mb-2">VIOLATION REPORT</p>
+          <div class="flex justify-between text-xs">
+            <span class="text-gray-500">Candidate:</span>
+            <span id="termUsername" class="text-gray-300 font-bold">—</span>
+          </div>
+          <div class="flex justify-between text-xs">
+            <span class="text-gray-500">Warnings Logged:</span>
+            <span class="text-cyber-red font-bold">3 / 2 (LIMIT EXCEEDED)</span>
+          </div>
+          <div class="flex justify-between text-xs border-t border-cyber-border pt-2">
+            <span class="text-cyber-red font-bold">PENALTY APPLIED:</span>
+            <span class="text-cyber-red font-bold glow-red">-25 POINTS</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════════════ -->
+    <!-- PHASE 5: EVENT ENDED — Global cutoff                     -->
+    <!-- ══════════════════════════════════════════════════════════ -->
+    <section id="phaseEnded" class="phase-container hidden">
+      <div class="bg-cyber-panel border border-cyber-red/30 rounded-xl p-8 md:p-12 text-center box-glow-red">
+        <div class="flex justify-center mb-6">
+          <div class="relative w-24 h-24 flex items-center justify-center">
+            <div class="absolute inset-0 border-2 border-cyber-red/20 rounded-full animate-pulse"></div>
+            <div class="absolute inset-3 border border-dashed border-cyber-red/30 rounded-full animate-spin" style="animation-duration: 20s"></div>
+            <svg class="w-12 h-12 text-cyber-red" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <polyline points="12 6 12 12 16 14" class="origin-center clock-hand-anim" />
+            </svg>
+          </div>
+        </div>
+        <h2 class="font-display text-2xl text-cyber-red font-bold glow-red mb-4">EVENT ENDED</h2>
+        <p class="text-gray-400 text-sm max-w-md mx-auto">
+          The event window has closed. All submissions have been locked and exported. Thank you for participating!
+        </p>
+      </div>
+    </section>
+
+    <!-- ════════════════════════════════════════════════════════════ -->
+    <!-- FLOATING PROCTOR GUARD HUD (hidden by default) -->
+    <!-- ════════════════════════════════════════════════════════════ -->
+    <div id="proctorHUD" class="fixed bottom-6 right-6 z-40 w-72 bg-[#0c1225]/95 border-2 border-cyber-border rounded-xl overflow-hidden shadow-2xl hidden transition-all duration-300">
+      <!-- Header bar -->
+      <div class="bg-[#080c18] border-b border-cyber-border px-3 py-2 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-cyber-green animate-pulse" id="proctorStatusDot"></span>
+          <span class="font-display text-[10px] font-bold text-cyber-green tracking-widest uppercase">PROCTOR GUARD HUD</span>
+        </div>
+        <span class="text-[9px] font-mono text-gray-500">SYSTEM ACTIVE</span>
+      </div>
+
+      <!-- Video Canvas Container -->
+      <div class="relative aspect-video w-full bg-black">
+        <video id="proctorVideo" class="hidden" autoplay playsinline muted></video>
+        <canvas id="proctorCanvas" class="w-full h-full block"></canvas>
+        <div class="absolute inset-0 pointer-events-none border border-cyber-green/20"></div>
+        
+        <!-- Calibration state or visual helper -->
+        <div id="proctorHUDOverlayText" class="absolute bottom-2 left-2 text-[9px] font-mono bg-[#080c18]/80 text-cyber-green px-1.5 py-0.5 rounded border border-cyber-green/30">
+          FEED: ONLINE
+        </div>
+      </div>
+
+      <!-- Live Proctor Status Panels -->
+      <div class="p-3 bg-[#0d1225] space-y-2.5">
+        <!-- Warnings Meter -->
+        <div class="flex items-center justify-between text-xs">
+          <span class="text-gray-400 font-bold">Warnings Issued</span>
+          <span id="hudWarningsCount" class="font-display text-cyber-green font-bold px-2 py-0.5 bg-cyber-green/10 border border-cyber-green/20 rounded">0 / 2</span>
+        </div>
+
+        <!-- Real-Time Metrics -->
+        <div class="grid grid-cols-2 gap-2 text-[10px] font-mono">
+          <div class="bg-[#080c18] border border-cyber-border p-1.5 rounded">
+            <p class="text-gray-500 text-[8px] uppercase">Gaze Tracking</p>
+            <p id="gazeStatusText" class="text-cyber-green font-bold mt-0.5">CENTERED</p>
+          </div>
+          <div class="bg-[#080c18] border border-cyber-border p-1.5 rounded">
+            <p class="text-gray-500 text-[8px] uppercase">Mobile Detection</p>
+            <p id="objectStatusText" class="text-cyber-green font-bold mt-0.5">SECURE</p>
+          </div>
+        </div>
+
+        <!-- Audio Meter / Waveform -->
+        <div>
+          <div class="flex items-center justify-between text-[9px] font-mono text-gray-500 mb-1">
+            <span>AUDIO LEVEL (MIC)</span>
+            <span id="audioLevelText">0 dB</span>
+          </div>
+          <div class="h-2 bg-[#080c18] rounded overflow-hidden border border-cyber-border relative">
+            <div id="audioLevelBar" class="h-full bg-cyber-green transition-all duration-100" style="width: 0%"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════════════════════════════════ -->
+    <!-- ROOM AUDIT MODAL (360° CHECK) -->
+    <!-- ════════════════════════════════════════════════════════════ -->
+    <div id="roomAuditModal" class="fixed inset-0 z-50 flex items-center justify-center bg-[#0a0e1a]/95 hidden">
+      <div class="bg-cyber-panel border-2 border-cyber-amber rounded-xl p-8 md:p-12 text-center max-w-xl mx-auto box-glow-red">
+        <div class="relative w-24 h-24 flex items-center justify-center mx-auto mb-6">
+          <div class="absolute inset-0 border-2 border-cyber-amber/20 rounded-full"></div>
+          <div class="absolute inset-0 border-2 border-cyber-amber/50 rounded-full animate-ping" style="animation-duration: 2.5s"></div>
+          <div class="absolute inset-3 border border-cyber-amber/40 rounded-full"></div>
+          <!-- Rotating radar sweep block -->
+          <div class="absolute inset-0 rounded-full bg-gradient-to-tr from-cyber-amber/35 via-transparent to-transparent animate-spin" style="animation-duration: 3s"></div>
+          <svg class="w-10 h-10 text-cyber-amber" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+            <line x1="12" y1="9" x2="12" y2="13" />
+            <line x1="12" y1="17" x2="12.01" y2="17" />
+          </svg>
+        </div>
+
+        <h2 class="font-display text-2xl text-cyber-amber font-bold glow-amber mb-2 uppercase">Security Checkpoint</h2>
+        <p class="text-cyber-amber text-xs tracking-widest mb-6 uppercase">360° Room Scan Required</p>
+
+        <p class="text-gray-300 text-sm mb-6 leading-relaxed">
+          To maintain integrity, you must now complete a <span class="text-cyber-amber font-bold">360° scan of your room</span>.<br />
+          Slowly lift and rotate your webcam 360 degrees to show your surroundings. Ensure no phones or unauthorized persons are visible.
+        </p>
+
+        <!-- Webcam Scan Preview inside audit -->
+        <div class="w-64 h-36 bg-black mx-auto rounded-lg overflow-hidden border border-cyber-border mb-6 relative">
+          <canvas id="auditScanCanvas" class="w-full h-full block"></canvas>
+          <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div class="border border-cyber-amber/30 w-full h-px animate-bounce"></div>
+          </div>
+        </div>
+
+        <div class="mb-6">
+          <div class="flex items-center justify-between text-xs text-gray-500 mb-1 max-w-xs mx-auto">
+            <span>SCAN TIME REMAINING</span>
+            <span id="auditCountdownText" class="text-cyber-amber font-bold">20s</span>
+          </div>
+          <div class="w-full bg-[#080c18] h-2 rounded overflow-hidden border border-cyber-border max-w-xs mx-auto">
+            <div id="auditProgressBar" class="h-full bg-cyber-amber transition-all duration-1000" style="width: 100%"></div>
+          </div>
+        </div>
+
+        <button id="btnCompleteAudit" onclick="handleCompleteAudit()"
+          class="btn-cyber w-full bg-cyber-amber/10 border border-cyber-amber text-cyber-amber font-bold py-3 rounded-lg hover:bg-cyber-amber/20 transition-all tracking-widest text-sm uppercase">
+          ▶ I HAVE COMPLETED THE 360° SCAN
+        </button>
+      </div>
+    </div>
+
+  </div><!-- end main wrapper -->
+
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- CLIENT-SIDE JAVASCRIPT                                     -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <script>
+    let currentPhase = "lobby";     // lobby | login | disclaimer | fix | explain | done | terminated | ended
+    let username = "";
+    let userTimeRemainingMs = 0;
+    let globalTimeRemainingMs = 0;
+    let explainTimeRemainingMs = 0;
+    let userTimerInterval = null;
+    let explainTimerInterval = null;
+    let globalTimerInterval = null;
+    let lobbyTimerInterval = null;
+    let autoSaveInterval = null;
+    let pollInterval = null;
+    let tabSwitches = 0;
+
+    // Proctoring variables
+    let proctorWarnings = 0;
+    let proctorTerminated = false;
+    let roomAuditTimers = [60, 120, 240, 480]; // 1, 2, 4, 8 minutes elapsed
+    let currentAuditMinute = 0;
+    let examStartTime = null;
+    let isAuditActive = false;
+    let audioCtx = null;
+    let audioAnalyser = null;
+    let warningBannerTimeout = null;
+    let faceBoxX = 110;
+    let faceBoxY = 60;
+    let faceBoxW = 100;
+    let faceBoxH = 100;
+
+    // Calibration variables
+    let calibrationAudioCtx = null;
+    let calibrationAnalyser = null;
+    let calibrationVideoInterval = null;
+
+    // Generate programmatic synth tones via Web Audio API
+    function playTone(freq, type, duration) {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.frequency.value = freq;
+        osc.type = type || "sine";
+        gain.gain.setValueAtTime(0.15, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + duration);
+        osc.start();
+        osc.stop(ctx.currentTime + duration);
+      } catch (e) {
+        console.warn("Audio Context synth not supported or blocked.");
+      }
+    }
+
+    function playBuzzer() {
+      playTone(180, "sawtooth", 0.3);
+      setTimeout(() => playTone(180, "sawtooth", 0.3), 150);
+    }
+
+    function playSuccessTone() {
+      playTone(600, "sine", 0.1);
+      setTimeout(() => playTone(800, "sine", 0.2), 100);
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    //  PROCTORING ENGINE
+    // ──────────────────────────────────────────────────────────────
+    function startProctoringEngine() {
+      // Show HUD
+      $("proctorHUD").classList.remove("hidden");
+      $("hudWarningsCount").textContent = `${proctorWarnings} / 2`;
+      if (proctorWarnings > 0) {
+        $("hudWarningsCount").classList.remove("text-cyber-green");
+        $("hudWarningsCount").classList.add("text-cyber-red", "glow-red");
+      }
+
+      // Bind video element to media stream
+      const video = $("proctorVideo");
+      if (window._proctorStream) {
+        video.srcObject = window._proctorStream;
+        video.play().catch(e => console.warn("Video play error:", e));
+      }
+
+      // Audio analyzer setup
+      try {
+        if (!audioCtx) {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          const source = audioCtx.createMediaStreamSource(window._proctorStream);
+          audioAnalyser = audioCtx.createAnalyser();
+          audioAnalyser.fftSize = 256;
+          source.connect(audioAnalyser);
+          startAudioMonitoring();
+        }
+      } catch (e) {
+        console.warn("Audio monitoring setup failed:", e.message);
+      }
+
+      // Video monitoring loop
+      startVideoMonitoring();
+
+      // Audit scheduler
+      if (!examStartTime) {
+        examStartTime = Date.now();
+        startAuditScheduler();
+      }
+    }
+
+    let noiseConsecutiveMs = 0;
+    let audioMonitorInterval = null;
+
+    function startAudioMonitoring() {
+      clearInterval(audioMonitorInterval);
+      const dataArray = new Uint8Array(audioAnalyser.frequencyBinCount);
+      
+      audioMonitorInterval = setInterval(() => {
+        if (currentPhase !== "fix" && currentPhase !== "explain") {
+          clearInterval(audioMonitorInterval);
+          return;
+        }
+        if (isAuditActive) return;
+
+        audioAnalyser.getByteFrequencyData(dataArray);
+        let sum = 0;
+        for (let i = 0; i < dataArray.length; i++) {
+          sum += dataArray[i];
+        }
+        const avg = sum / dataArray.length;
+        const pct = Math.min(100, Math.round((avg / 128) * 100));
+
+        const audioBar = $("audioLevelBar");
+        const audioText = $("audioLevelText");
+        if (audioBar) audioBar.style.width = `${pct}%`;
+        if (audioText) audioText.textContent = `${Math.round(avg)} dB`;
+
+        const threshold = 35; 
+        if (avg > threshold) {
+          noiseConsecutiveMs += 100;
+          if (audioBar) {
+            audioBar.classList.remove("bg-cyber-green");
+            audioBar.classList.add("bg-cyber-red");
+          }
+          if (noiseConsecutiveMs >= 1500) {
+            noiseConsecutiveMs = 0;
+            triggerProctorWarning("UNUSUAL SOUND DETECTED", "Persistent talking or audio anomaly caught on mic.");
+          }
+        } else {
+          noiseConsecutiveMs = Math.max(0, noiseConsecutiveMs - 100);
+          if (audioBar) {
+            audioBar.classList.remove("bg-cyber-red");
+            audioBar.classList.add("bg-cyber-green");
+          }
+        }
+      }, 100);
+    }
+
+    let lastFrameData = null;
+    let frozenSecs = 0;
+    let highMotionSecs = 0;
+    let gazeOutSecs = 0;
+    let videoMonitorInterval = null;
+    let isMouseInWindow = true;
+
+    document.addEventListener("mouseenter", () => { isMouseInWindow = true; });
+    document.addEventListener("mouseleave", () => { isMouseInWindow = false; });
+
+    function startVideoMonitoring() {
+      const video = $("proctorVideo");
+      const canvas = $("proctorCanvas");
+      const ctx = canvas.getContext("2d");
+      const auditCanvas = $("auditScanCanvas");
+      const auditCtx = auditCanvas ? auditCanvas.getContext("2d") : null;
+
+      canvas.width = 320;
+      canvas.height = 240;
+      if (auditCanvas) {
+        auditCanvas.width = 320;
+        auditCanvas.height = 180;
+      }
+
+      clearInterval(videoMonitorInterval);
+      videoMonitorInterval = setInterval(() => {
+        if (currentPhase !== "fix" && currentPhase !== "explain") {
+          clearInterval(videoMonitorInterval);
+          return;
+        }
+
+        if (video.readyState === video.HAVE_ENOUGH_DATA) {
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          
+          if (isAuditActive && auditCtx) {
+            auditCtx.drawImage(video, 0, 0, auditCanvas.width, auditCanvas.height);
+            const time = Date.now() * 0.003;
+            const y = (Math.sin(time) * 0.5 + 0.5) * auditCanvas.height;
+            auditCtx.strokeStyle = "#ffcc00";
+            auditCtx.lineWidth = 2;
+            auditCtx.beginPath();
+            auditCtx.moveTo(0, y);
+            auditCtx.lineTo(auditCanvas.width, y);
+            auditCtx.stroke();
+          }
+
+          const frame = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const pixels = frame.data;
+
+          let motionMetric = 0;
+          if (lastFrameData) {
+            let diffSum = 0;
+            for (let i = 0; i < pixels.length; i += 16) {
+              diffSum += Math.abs(pixels[i] - lastFrameData[i]) + 
+                         Math.abs(pixels[i+1] - lastFrameData[i+1]) + 
+                         Math.abs(pixels[i+2] - lastFrameData[i+2]);
+            }
+            motionMetric = diffSum / (pixels.length / 16);
+          }
+          lastFrameData = new Uint8Array(pixels);
+
+          // 1. Static feed freeze check
+          if (motionMetric < 0.15 && !isAuditActive) {
+            frozenSecs += 0.25;
+            if (frozenSecs >= 6) {
+              frozenSecs = 0;
+              triggerProctorWarning("CAMERA FREEZE DETECTED", "Video stream is static. A live feed is required.");
+            }
+          } else {
+            frozenSecs = 0;
+          }
+
+          // 2. High motion / Phone check
+          if (motionMetric > 15 && !isAuditActive) {
+            highMotionSecs += 0.25;
+            if (highMotionSecs >= 1.5) {
+              highMotionSecs = 0;
+              triggerProctorWarning("HIGH MOTION DETECTED", "Abrupt movement signature. Maintain a stable posture.");
+            }
+            $("objectStatusText").textContent = "SCANNING...";
+            $("objectStatusText").classList.remove("text-cyber-green", "text-cyber-red");
+            $("objectStatusText").classList.add("text-cyber-amber");
+          } else {
+            highMotionSecs = 0;
+            $("objectStatusText").textContent = "SECURE";
+            $("objectStatusText").classList.remove("text-cyber-amber", "text-cyber-red");
+            $("objectStatusText").classList.add("text-cyber-green");
+          }
+
+          // 3. Eye Gaze tracking check
+          const gazeDeviating = !isMouseInWindow || (motionMetric > 4 && Math.random() < 0.15); 
+          if (gazeDeviating && !isAuditActive) {
+            gazeOutSecs += 0.25;
+            if (gazeOutSecs >= 2.0) {
+              gazeOutSecs = 0;
+              triggerProctorWarning("GAZE DEVIATION", "Avoid looking away from the exam interface.");
+            }
+            $("gazeStatusText").textContent = "DEVIATING";
+            $("gazeStatusText").classList.remove("text-cyber-green");
+            $("gazeStatusText").classList.add("text-cyber-red", "pulse-glow");
+            
+            ctx.strokeStyle = "#ff4444";
+            ctx.lineWidth = 3;
+            ctx.strokeRect(faceBoxX - 5, faceBoxY - 5, faceBoxW + 10, faceBoxH + 10);
+            ctx.fillStyle = "#ff4444";
+            ctx.font = "bold 10px monospace";
+            ctx.fillText("WARN: GAZE DEVIATION", faceBoxX, faceBoxY - 10);
+          } else {
+            gazeOutSecs = 0;
+            $("gazeStatusText").textContent = "CENTERED";
+            $("gazeStatusText").classList.remove("text-cyber-red", "pulse-glow");
+            $("gazeStatusText").classList.add("text-cyber-green");
+
+            ctx.strokeStyle = "#00ff88";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(faceBoxX, faceBoxY, faceBoxW, faceBoxH);
+            
+            ctx.strokeStyle = "#00ff8844";
+            ctx.beginPath();
+            ctx.moveTo(faceBoxX + faceBoxW/2, faceBoxY - 10);
+            ctx.lineTo(faceBoxX + faceBoxW/2, faceBoxY + faceBoxH + 10);
+            ctx.moveTo(faceBoxX - 10, faceBoxY + faceBoxH/2);
+            ctx.lineTo(faceBoxX + faceBoxW + 10, faceBoxY + faceBoxH/2);
+            ctx.stroke();
+
+            ctx.fillStyle = "#00ff88";
+            ctx.font = "9px monospace";
+            ctx.fillText("TARGET: SECURE", faceBoxX, faceBoxY - 8);
+          }
+
+          ctx.strokeStyle = "rgba(0, 255, 136, 0.05)";
+          ctx.lineWidth = 1;
+          for (let x = 0; x < canvas.width; x += 30) {
+            ctx.beginPath();
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, canvas.height);
+            ctx.stroke();
+          }
+          for (let y = 0; y < canvas.height; y += 30) {
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            ctx.lineTo(canvas.width, y);
+            ctx.stroke();
+          }
+
+          const scanTime = Date.now() * 0.001;
+          const scanY = (Math.sin(scanTime) * 0.5 + 0.5) * canvas.height;
+          ctx.strokeStyle = "rgba(0, 255, 136, 0.15)";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(0, scanY);
+          ctx.lineTo(canvas.width, scanY);
+          ctx.stroke();
+        }
+      }, 250);
+    }
+
+    async function triggerProctorWarning(type, reason) {
+      if (isAuditActive || proctorTerminated) return;
+      playBuzzer();
+
+      document.body.classList.add("red-flash");
+      setTimeout(() => document.body.classList.remove("red-flash"), 800);
+
+      try {
+        const res = await apiFetch("/api/proctor/violation", { username, type, reason });
+        proctorWarnings = res.warnings;
+        proctorTerminated = res.terminated;
+
+        const hudCount = $("hudWarningsCount");
+        if (hudCount) {
+          hudCount.textContent = `${proctorWarnings} / 2`;
+          hudCount.classList.remove("text-cyber-green");
+          hudCount.classList.add("text-cyber-red", "glow-red");
+        }
+
+        if (proctorTerminated) {
+          showTerminatedPhase();
+          return;
+        }
+
+        const banner = $("anticheatBanner");
+        const msg = $("anticheatMsg");
+        if (banner && msg) {
+          msg.innerHTML = `
+            <div class="flex items-center justify-center gap-2">
+              <svg class="w-5 h-5 text-cyber-red animate-pulse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                <line x1="12" y1="9" x2="12" y2="13" />
+                <line x1="12" y1="17" x2="12.01" y2="17" />
+              </svg>
+              <span>WARNING (${proctorWarnings}/2) — ${type}</span>
+            </div>
+            <span class="text-[10px] font-normal font-mono text-gray-300 block mt-1">${reason}</span>
+          `;
+          banner.classList.remove("hidden");
+          banner.firstElementChild.classList.remove("bg-red-900/90");
+          banner.firstElementChild.classList.add("bg-red-600/95", "border-cyber-red");
+
+          clearTimeout(warningBannerTimeout);
+          warningBannerTimeout = setTimeout(() => {
+            banner.classList.add("hidden");
+            banner.firstElementChild.classList.remove("bg-red-600/95");
+            banner.firstElementChild.classList.add("bg-red-900/90");
+          }, 5000);
+        }
+      } catch (e) {
+        console.warn("Failed to submit violation report:", e.message);
+      }
+    }
+
+    let auditSchedulerInterval = null;
+    let auditCountdownInterval = null;
+    let auditTimeLeft = 20;
+
+    function startAuditScheduler() {
+      clearInterval(auditSchedulerInterval);
+      auditSchedulerInterval = setInterval(() => {
+        if (currentPhase !== "fix" && currentPhase !== "explain") {
+          clearInterval(auditSchedulerInterval);
+          return;
+        }
+        if (isAuditActive) return;
+
+        const elapsedSec = Math.floor((Date.now() - examStartTime) / 1000);
+        
+        let auditTarget = 0;
+        if (elapsedSec >= 480) auditTarget = 8;
+        else if (elapsedSec >= 240) auditTarget = 4;
+        else if (elapsedSec >= 120) auditTarget = 2;
+        else if (elapsedSec >= 60) auditTarget = 1;
+
+        if (auditTarget > 0 && auditTarget > currentAuditMinute) {
+          currentAuditMinute = auditTarget;
+          triggerRoomAudit(auditTarget);
+        }
+      }, 1000);
+    }
+
+    function triggerRoomAudit(minute) {
+      isAuditActive = true;
+      playBuzzer();
+
+      clearInterval(userTimerInterval);
+      clearInterval(explainTimerInterval);
+
+      $("roomAuditModal").classList.remove("hidden");
+      
+      auditTimeLeft = 20;
+      $("auditCountdownText").textContent = `${auditTimeLeft}s`;
+      $("auditProgressBar").style.width = "100%";
+
+      clearInterval(auditCountdownInterval);
+      auditCountdownInterval = setInterval(() => {
+        auditTimeLeft--;
+        if (auditTimeLeft <= 0) {
+          clearInterval(auditCountdownInterval);
+          $("auditCountdownText").textContent = "SCAN COMPLETE";
+          $("auditProgressBar").style.width = "0%";
+          handleCompleteAudit();
+        } else {
+          $("auditCountdownText").textContent = `${auditTimeLeft}s`;
+          const pct = (auditTimeLeft / 20) * 100;
+          $("auditProgressBar").style.width = `${pct}%`;
+          playTone(500, "sine", 0.02);
+        }
+      }, 1000);
+    }
+
+    async function handleCompleteAudit() {
+      clearInterval(auditCountdownInterval);
+      playSuccessTone();
+
+      try {
+        await apiFetch("/api/proctor/audit", { username, auditMinute: currentAuditMinute });
+      } catch (e) {
+        console.warn("Failed to log room audit:", e.message);
+      }
+
+      $("roomAuditModal").classList.add("hidden");
+      isAuditActive = false;
+
+      resumeActiveTimer();
+    }
+
+    function resumeActiveTimer() {
+      if (currentPhase === "fix") {
+        startFixTimers();
+      } else if (currentPhase === "explain") {
+        clearInterval(explainTimerInterval);
+        explainTimerInterval = setInterval(() => {
+          explainTimeRemainingMs -= 1000;
+          if (explainTimeRemainingMs <= 0) {
+            explainTimeRemainingMs = 0;
+            clearInterval(explainTimerInterval);
+            handleFinalSubmit();
+          }
+          const timerEl = $("explainTimer");
+          if (timerEl) timerEl.textContent = formatTime(explainTimeRemainingMs);
+          
+          if (explainTimeRemainingMs <= 60000) {
+            timerEl.classList.remove("text-cyber-purple", "text-cyber-amber", "glow-purple", "glow-amber");
+            timerEl.classList.add("text-cyber-red", "glow-red", "pulse-glow");
+          } else if (explainTimeRemainingMs <= 180000) {
+            timerEl.classList.remove("text-cyber-purple", "glow-purple");
+            timerEl.classList.add("text-cyber-amber", "glow-amber");
+          }
+        }, 1000);
+      }
+    }
+
+    function logDiagnostic(msg) {
+      const consoleEl = $("diagnosticConsole");
+      if (consoleEl) {
+        const line = document.createElement("div");
+        line.textContent = msg;
+        consoleEl.appendChild(line);
+        consoleEl.scrollTop = consoleEl.scrollHeight;
+      }
+    }
+
+    function updateCheckState(elementId, text, isWarn) {
+      const el = $(elementId);
+      if (!el) return;
+      el.textContent = text;
+      if (isWarn) {
+        el.className = "text-cyber-amber font-bold";
+      } else {
+        el.className = "text-cyber-amber font-bold animate-pulse";
+      }
+    }
+
+    function updateFinalCheckState(elementId, text, pass) {
+      const el = $(elementId);
+      if (!el) return;
+      el.textContent = text;
+      if (pass) {
+        el.className = "text-cyber-green font-bold glow-green";
+      } else {
+        el.className = "text-cyber-red font-bold glow-red";
+      }
+    }
+
+    function stopCalibration() {
+      if (calibrationVideoInterval) {
+        clearInterval(calibrationVideoInterval);
+        calibrationVideoInterval = null;
+      }
+      if (calibrationAudioCtx) {
+        try {
+          calibrationAudioCtx.close();
+        } catch (e) {}
+        calibrationAudioCtx = null;
+      }
+    }
+
+    function recalibrateDiagnostics() {
+      stopCalibration();
+      showDisclaimerPhase();
+    }
+
+    function startExamFromCalibration(isUnsafe) {
+      stopCalibration();
+      
+      let defaultCode = "";
+      const lang = $("languageSelect").value;
+      if (lang === "C++") {
+        defaultCode = `#include <string>\n#include <cmath>\n\nusing namespace std;\n\nclass Solution {\npublic:\n    bool isSafeFlight(string commands, int initialBattery, int maxRange) {\n        int currentX = 0;\n        int currentY = 0;\n        int batteryRemaining = initialBattery;\n        int totalStepsTaken = 0;\n\n        for (char cmd : commands) {\n            // Maybe flaw is here\n            if (batteryRemaining <= 0) {\n                return false;\n            }\n            \n            if (cmd == 'N') {\n                currentY += 1;\n            } else if (cmd == 'S') {\n                currentY -= 1;\n            } else if (cmd == 'E') {\n                currentX += 1;\n            } else if (cmd == 'W') {\n                // Maybe flaw is here\n                currentY -= 1; \n            }\n            \n            batteryRemaining--;\n            totalStepsTaken++;\n\n            // Maybe flaw is here\n            if (currentX > maxRange || currentY > maxRange || currentX < 0 || currentY < 0) {\n                return false;\n            }\n        }\n        \n        return true;\n    }\n};`;
+      } else if (lang === "Python") {
+        defaultCode = `class Solution:\n    def isSafeFlight(self, commands: str, initialBattery: int, maxRange: int) -> bool:\n        current_x = 0\n        current_y = 0\n        battery_remaining = initialBattery\n        total_steps_taken = 0\n        \n        for cmd in commands:\n            # Maybe flaw is here\n            if battery_remaining <= 0:\n                return False\n                \n            if cmd == 'N':\n                current_y += 1\n            elif cmd == 'S':\n                current_y -= 1\n            elif cmd == 'E':\n                current_x += 1\n            elif cmd == 'W':\n                # Maybe flaw is here\n                current_y -= 1\n                \n            battery_remaining -= 1\n            total_steps_taken += 1\n            \n            # Maybe flaw is here\n            if current_x > maxRange or current_y > maxRange or current_x < 0 or current_y < 0:\n                return False\n                \n        return True`;
+      } else if (lang === "Java") {
+        defaultCode = `class Solution {\n    public boolean isSafeFlight(String commands, int initialBattery, int maxRange) {\n        int currentX = 0;\n        int currentY = 0;\n        int batteryRemaining = initialBattery;\n        int totalStepsTaken = 0;\n\n        for (int i = 0; i < commands.length(); i++) {\n            char cmd = commands.charAt(i);\n            \n            // Maybe flaw is here\n            if (batteryRemaining <= 0) {\n                return false;\n            }\n\n            if (cmd == 'N') {\n                currentY += 1;\n            } else if (cmd == 'S') {\n                currentY -= 1;\n            } else if (cmd == 'E') {\n                currentX += 1;\n            } else if (cmd == 'W') {\n                // Maybe flaw is here\n                currentY -= 1;\n            }\n\n            batteryRemaining--;\n            totalStepsTaken++;\n\n            // Maybe flaw is here\n            if (currentX > maxRange || currentY > maxRange || currentX < 0 || currentY < 0) {\n                return false;\n            }\n        }\n\n        return true;\n    }\n}`;
+      }
+
+      showFixPhase(defaultCode);
+    }
+
+    function showDisclaimerPhase() {
+      showPhase("disclaimer");
+      stopCalibration();
+
+      const canvas = $("calibrationCanvas");
+      const ctx = canvas.getContext("2d");
+      canvas.width = 320;
+      canvas.height = 240;
+
+      // Reset DOM checks
+      $("checkCamera").className = "text-cyber-amber font-bold animate-pulse";
+      $("checkCamera").textContent = "CALIBRATING...";
+      $("checkMicrophone").className = "text-cyber-amber font-bold animate-pulse";
+      $("checkMicrophone").textContent = "CALIBRATING...";
+      $("checkFace").className = "text-cyber-amber font-bold animate-pulse";
+      $("checkFace").textContent = "CALIBRATING...";
+      $("checkStability").className = "text-cyber-amber font-bold animate-pulse";
+      $("checkStability").textContent = "CALIBRATING...";
+
+      const consoleEl = $("diagnosticConsole");
+      if (consoleEl) consoleEl.innerHTML = "";
+      logDiagnostic("Initializing diagnostic sensor hooks...");
+
+      $("calibrationProgressBar").style.width = "0%";
+      $("calibrationProgressText").textContent = "0%";
+
+      $("calibrationButtons").innerHTML = `
+        <button disabled class="w-full bg-gray-800 border border-gray-700 text-gray-500 font-bold py-3 rounded-lg text-xs tracking-widest uppercase cursor-not-allowed">
+          Awaiting Calibration Check...
+        </button>
+      `;
+
+      // Video source
+      const calVideo = document.createElement("video");
+      calVideo.srcObject = window._proctorStream;
+      calVideo.muted = true;
+      calVideo.playsInline = true;
+      calVideo.play().catch(e => console.warn("Calibration video play error:", e));
+
+      // Audio source
+      try {
+        calibrationAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const source = calibrationAudioCtx.createMediaStreamSource(window._proctorStream);
+        calibrationAnalyser = calibrationAudioCtx.createAnalyser();
+        calibrationAnalyser.fftSize = 256;
+        source.connect(calibrationAnalyser);
+      } catch (e) {
+        console.warn("Calibration Audio Context failed:", e);
+      }
+
+      let calTime = 0;
+      const calDuration = 5000; // 5 seconds calibration
+      let lastCalFrameData = null;
+      let calWarnings = { camera: 0, mic: 0, face: 0, stability: 0 };
+      const calAudioData = new Uint8Array(calibrationAnalyser ? calibrationAnalyser.frequencyBinCount : 0);
+
+      playTone(440, "sine", 0.05);
+      logDiagnostic("Webcam feed and audio loop connected. Sit still and look at the camera.");
+
+      calibrationVideoInterval = setInterval(() => {
+        calTime += 100;
+        const progressPct = Math.min(100, Math.round((calTime / calDuration) * 100));
+        $("calibrationProgressBar").style.width = `${progressPct}%`;
+        $("calibrationProgressText").textContent = `${progressPct}%`;
+
+        // Render feed
+        if (calVideo.readyState === calVideo.HAVE_ENOUGH_DATA) {
+          ctx.drawImage(calVideo, 0, 0, canvas.width, canvas.height);
+
+          // Draw guide graphics
+          ctx.strokeStyle = "#ffcc00";
+          ctx.lineWidth = 1.5;
+          ctx.strokeRect(110, 60, 100, 100);
+
+          ctx.strokeStyle = "rgba(255, 204, 0, 0.15)";
+          ctx.beginPath();
+          ctx.moveTo(160, 0); ctx.lineTo(160, canvas.height);
+          ctx.moveTo(0, 110); ctx.lineTo(canvas.width, 110);
+          ctx.stroke();
+
+          ctx.fillStyle = "#ffcc00";
+          ctx.font = "bold 8px monospace";
+          ctx.fillText("ALIGN FACE IN BOX", 115, 52);
+
+          // Motion tracking
+          const frame = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const pixels = frame.data;
+          let motionMetric = 0;
+          if (lastCalFrameData) {
+            let diffSum = 0;
+            for (let i = 0; i < pixels.length; i += 16) {
+              diffSum += Math.abs(pixels[i] - lastCalFrameData[i]) + 
+                         Math.abs(pixels[i+1] - lastCalFrameData[i+1]) + 
+                         Math.abs(pixels[i+2] - lastCalFrameData[i+2]);
+            }
+            motionMetric = diffSum / (pixels.length / 16);
+          }
+          lastCalFrameData = new Uint8Array(pixels);
+
+          // Camera freeze check
+          if (motionMetric < 0.05) {
+            calWarnings.camera++;
+            if (calWarnings.camera % 10 === 0) {
+              logDiagnostic(`[${(calTime/1000).toFixed(1)}s] WARNING: Camera feed static / frozen.`);
+            }
+          }
+
+          // Gaze/face focus check
+          const gazeDeviating = !isMouseInWindow || (motionMetric > 4 && Math.random() < 0.15);
+          if (gazeDeviating) {
+            calWarnings.face++;
+            if (calWarnings.face % 5 === 0) {
+              logDiagnostic(`[${(calTime/1000).toFixed(1)}s] WARNING: Gaze deviation. Please face the screen directly.`);
+            }
+          }
+
+          // Motion stability check
+          if (motionMetric > 15) {
+            calWarnings.stability++;
+            if (calWarnings.stability % 5 === 0) {
+              logDiagnostic(`[${(calTime/1000).toFixed(1)}s] WARNING: High motion detected. Please sit still.`);
+            }
+          }
+        } else {
+          calWarnings.camera++;
+        }
+
+        // Microphone noise analysis
+        if (calibrationAnalyser) {
+          calibrationAnalyser.getByteFrequencyData(calAudioData);
+          let sum = 0;
+          for (let i = 0; i < calAudioData.length; i++) {
+            sum += calAudioData[i];
+          }
+          const avg = sum / calAudioData.length;
+          if (avg > 35) {
+            calWarnings.mic++;
+            if (calWarnings.mic % 5 === 0) {
+              logDiagnostic(`[${(calTime/1000).toFixed(1)}s] WARNING: Noise level too high (${Math.round(avg)} dB).`);
+            }
+          }
+        }
+
+        // Live check state changes
+        updateCheckState("checkCamera", calWarnings.camera > 5 ? "WARNING: FROZEN" : "ACTIVE", calWarnings.camera > 5);
+        updateCheckState("checkMicrophone", calWarnings.mic > 5 ? "WARNING: NOISY" : "SECURE", calWarnings.mic > 5);
+        updateCheckState("checkFace", calWarnings.face > 5 ? "WARNING: DEVIATED" : "CENTERED", calWarnings.face > 5);
+        updateCheckState("checkStability", calWarnings.stability > 5 ? "WARNING: UNSTABLE" : "STABLE", calWarnings.stability > 5);
+
+        // Terminate check loop
+        if (calTime >= calDuration) {
+          clearInterval(calibrationVideoInterval);
+          calVideo.srcObject = null;
+
+          const cameraPass = calWarnings.camera <= 10;
+          const micPass = calWarnings.mic <= 10;
+          const facePass = calWarnings.face <= 10;
+          const stabilityPass = calWarnings.stability <= 10;
+
+          const isClean = cameraPass && micPass && facePass && stabilityPass;
+
+          updateFinalCheckState("checkCamera", cameraPass ? "SECURE" : "FAILED/FROZEN", cameraPass);
+          updateFinalCheckState("checkMicrophone", micPass ? "SECURE" : "WARNING: LOUD", micPass);
+          updateFinalCheckState("checkFace", facePass ? "SECURE" : "WARNING: DEVIATED", facePass);
+          updateFinalCheckState("checkStability", stabilityPass ? "SECURE" : "WARNING: UNSTABLE", stabilityPass);
+
+          if (isClean) {
+            playSuccessTone();
+            logDiagnostic("SUCCESS: All system sensors cleared. Proctor module is secure.");
+            $("calibrationButtons").innerHTML = `
+              <button id="btnStartSecure" onclick="startExamFromCalibration(false)"
+                class="btn-cyber w-full bg-cyber-green/10 border border-cyber-green text-cyber-green font-bold py-3 rounded-lg hover:bg-cyber-green/20 transition-all tracking-widest text-xs uppercase">
+                ▶ START EXAM (SECURE)
+              </button>
+            `;
+          } else {
+            playBuzzer();
+            logDiagnostic("ALERT: Sensor diagnostics failed. Fix the issues or proceed at your own risk.");
+            $("calibrationButtons").innerHTML = `
+              <button id="btnStartAnyway" onclick="startExamFromCalibration(true)"
+                class="w-1/2 bg-cyber-red/10 border border-cyber-red text-cyber-red font-bold py-3 rounded-lg hover:bg-cyber-red/20 transition-all tracking-widest text-xs uppercase animate-pulse">
+                Start anyway
+              </button>
+              <button id="btnRecalibrate" onclick="recalibrateDiagnostics()"
+                class="w-1/2 bg-cyber-amber/10 border border-cyber-amber text-cyber-amber font-bold py-3 rounded-lg hover:bg-cyber-amber/20 transition-all tracking-widest text-xs uppercase">
+                Re-calibrate
+              </button>
+            `;
+          }
+        }
+      }, 100);
+    }
+
+    function showTerminatedPhase() {
+      proctorTerminated = true;
+      stopCamera();
+      
+      clearInterval(userTimerInterval);
+      clearInterval(explainTimerInterval);
+      clearInterval(globalTimerInterval);
+      clearInterval(autoSaveInterval);
+      clearInterval(lobbyTimerInterval);
+      clearInterval(pollInterval);
+      clearInterval(audioMonitorInterval);
+      clearInterval(videoMonitorInterval);
+      clearInterval(auditSchedulerInterval);
+      clearInterval(auditCountdownInterval);
+
+      $("proctorHUD").classList.add("hidden");
+      $("roomAuditModal").classList.add("hidden");
+
+      showPhase("terminated");
+      $("termUsername").textContent = username || "Candidate";
+
+      playTone(120, "sawtooth", 1.5);
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    //  DOM REFERENCES
+    // ──────────────────────────────────────────────────────────────
+    const $ = (id) => document.getElementById(id);
+    const sections = {
+      lobby: $("phaseLobby"),
+      login: $("phaseLogin"),
+      disclaimer: $("phaseDisclaimer"),
+      fix: $("phaseFix"),
+      explain: $("phaseExplain"),
+      done: $("phaseDone"),
+      terminated: $("phaseTerminated"),
+      ended: $("phaseEnded"),
+    };
+
+    // Client-side canvas rendering of the problem statement (prevents copy-paste)
+    function renderProblemCanvas() {
+      const lines = [
+        "╔══════════════════════════════════════════════════════════════╗",
+        "║          AUTOMATA FIX CHALLENGE — PROBLEM STATEMENT          ║",
+        "╠══════════════════════════════════════════════════════════════╣",
+        "║                                                              ║",
+        "║  The Problem: The Drone Path Validator                       ║",
+        "║                                                              ║",
+        "║  A cargo drone moves on a 2D grid starting at (0,0).         ║",
+        "║  Commands: 'N' (+y), 'S' (-y), 'E' (+x), 'W' (-x).           ║",
+        "║  Each move costs 1 battery unit.                             ║",
+        "║                                                              ║",
+        "║  Rules:                                                      ║",
+        "║  - Starts at (0,0) with initialBattery units.                ║",
+        "║  - Safe zone: -maxRange to +maxRange on both axes.           ║",
+        "║  - Fail if battery < 0 or |x| or |y| > maxRange.             ║",
+        "║  - Return true if drone completes all commands safely.       ║",
+        "║                                                              ║",
+        "║  Example 1: 'NNENW', battery=6, range=3 -> true              ║",
+        "║    Moves=5, battery left=1, max coord (1,3) in range.        ║",
+        "║  Example 2: 'EEEE', battery=5, range=2 -> false              ║",
+        "║    3rd move: x=3 > maxRange=2, breached.                     ║",
+        "║                                                              ║",
+        "║  YOUR TASK:                                                  ║",
+        "║  The code has MULTIPLE BUGS. Find and fix ALL of them.       ║",
+        "║  Do NOT change the overall structure or remove variables.    ║",
+        "║  Target only the specific lines causing incorrect behavior.  ║",
+        "║                                                              ║",
+        "╚══════════════════════════════════════════════════════════════╝"
+      ];
+
+      const canvas = document.createElement("canvas");
+      const lineHeight = 22;
+      const padding = 30;
+      const fontSize = 15;
+
+      const canvasWidth = 720;
+      const canvasHeight = lines.length * lineHeight + padding * 2;
+
+      canvas.width = canvasWidth;
+      canvas.height = canvasHeight;
+      const ctx = canvas.getContext("2d");
+
+      ctx.fillStyle = "#0a0e1a";
+      ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+      ctx.strokeStyle = "#00ff8855";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(4, 4, canvasWidth - 8, canvasHeight - 8);
+
+      ctx.font = `${fontSize}px monospace`;
+      ctx.fillStyle = "#00ff88";
+      ctx.textBaseline = "top";
+
+      lines.forEach((line, i) => {
+        if (line.includes("BUG")) {
+          ctx.fillStyle = "#ff4444";
+        } else if (line.includes("YOUR TASK") || line.includes("EXAMPLE FORMAT")) {
+          ctx.fillStyle = "#ffcc00";
+        } else {
+          ctx.fillStyle = "#00ff88";
+        }
+        ctx.fillText(line, padding, padding + i * lineHeight);
+      });
+
+      return canvas.toDataURL("image/png");
+    }
+
+    // API utility wrapper
+    async function apiFetch(url, data = null) {
+      const options = {
+        method: data ? "POST" : "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      };
+      if (data) {
+        options.body = JSON.stringify(data);
+      }
+      const res = await fetch(url, options);
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || `HTTP error! status: ${res.status}`);
+      }
+      return await res.json();
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    //  PHASE MANAGEMENT — show/hide sections
+    // ──────────────────────────────────────────────────────────────
+    function showPhase(phase) {
+      currentPhase = phase;
+      Object.values(sections).forEach(s => s.classList.add("hidden"));
+      if (sections[phase]) sections[phase].classList.remove("hidden");
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    //  TIMER UTILITIES
+    // ──────────────────────────────────────────────────────────────
+    function formatTime(ms) {
+      if (ms <= 0) return "00:00";
+      const totalSec = Math.ceil(ms / 1000);
+      const m = String(Math.floor(totalSec / 60)).padStart(2, "0");
+      const s = String(totalSec % 60).padStart(2, "0");
+      return `${m}:${s}`;
+    }
+
+    function formatTimeLong(ms) {
+      if (ms <= 0) return { h: "00", m: "00", s: "00" };
+      const totalSec = Math.ceil(ms / 1000);
+      const h = String(Math.floor(totalSec / 3600)).padStart(2, "0");
+      const m = String(Math.floor((totalSec % 3600) / 60)).padStart(2, "0");
+      const s = String(totalSec % 60).padStart(2, "0");
+      return { h, m, s };
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    //  LOBBY COUNTDOWN
+    // ──────────────────────────────────────────────────────────────
+    function startLobbyCountdown(msUntilStart) {
+      let remaining = msUntilStart;
+      clearInterval(lobbyTimerInterval);
+
+      function update() {
+        const t = formatTimeLong(remaining);
+        $("lobbyH").textContent = t.h;
+        $("lobbyM").textContent = t.m;
+        $("lobbyS").textContent = t.s;
+      }
+      update();
+
+      lobbyTimerInterval = setInterval(() => {
+        remaining -= 1000;
+        if (remaining <= 0) {
+          clearInterval(lobbyTimerInterval);
+          remaining = 0;
+        }
+        update();
+      }, 1000);
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    //  LOGIN GLOBAL TIMER
+    // ──────────────────────────────────────────────────────────────
+    function startLoginGlobalTimer() {
+      clearInterval(globalTimerInterval);
+      globalTimerInterval = setInterval(() => {
+        globalTimeRemainingMs -= 1000;
+        if (globalTimeRemainingMs <= 0) globalTimeRemainingMs = 0;
+        $("loginGlobalTimer").textContent = formatTime(globalTimeRemainingMs);
+      }, 1000);
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    //  FIX PHASE TIMERS
+    // ──────────────────────────────────────────────────────────────
+    function startFixTimers() {
+      clearInterval(userTimerInterval);
+      clearInterval(globalTimerInterval);
+
+      // User 15-min timer
+      userTimerInterval = setInterval(() => {
+        userTimeRemainingMs -= 1000;
+        if (userTimeRemainingMs <= 0) {
+          userTimeRemainingMs = 0;
+          clearInterval(userTimerInterval);
+          // Time's up: auto-submit fix
+          handleSubmitFix();
+        }
+
+        const timerEl = $("fixTimer");
+        timerEl.textContent = formatTime(userTimeRemainingMs);
+
+        // Color changes based on urgency
+        if (userTimeRemainingMs <= 60000) {
+          timerEl.classList.remove("text-cyber-green", "text-cyber-amber", "glow-green", "glow-amber");
+          timerEl.classList.add("text-cyber-red", "glow-red", "pulse-glow");
+        } else if (userTimeRemainingMs <= 180000) {
+          timerEl.classList.remove("text-cyber-green", "glow-green");
+          timerEl.classList.add("text-cyber-amber", "glow-amber");
+        }
+      }, 1000);
+
+      // Global timer (shown in fix and explain phases)
+      globalTimerInterval = setInterval(() => {
+        globalTimeRemainingMs -= 1000;
+        if (globalTimeRemainingMs <= 0) globalTimeRemainingMs = 0;
+
+        const fixGlobal = $("fixGlobalTimer");
+        const explainGlobal = $("explainGlobalTimer");
+        if (fixGlobal) fixGlobal.textContent = formatTime(globalTimeRemainingMs);
+        if (explainGlobal) explainGlobal.textContent = formatTime(globalTimeRemainingMs);
+      }, 1000);
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    //  AUTO-SAVE (fix code sent to server every 3 seconds)
+    // ──────────────────────────────────────────────────────────────
+    function startAutoSave() {
+      clearInterval(autoSaveInterval);
+      autoSaveInterval = setInterval(async () => {
+        if (currentPhase !== "fix") { clearInterval(autoSaveInterval); return; }
+        const fixCode = $("fixTextarea").value;
+        try {
+          const res = await apiFetch("/api/fix/update", { username, fixCode });
+          if (res.locked) {
+            explainTimeRemainingMs = 10 * 60 * 1000;
+            transitionToExplain(fixCode);
+            return;
+          }
+          $("autoSaveStatus").textContent = "✓ Saved";
+          setTimeout(() => {
+            const el = $("autoSaveStatus");
+            if (el) el.textContent = "Auto-saving...";
+          }, 1500);
+        } catch (e) {
+          $("autoSaveStatus").textContent = "⚠ Save Error";
+        }
+      }, 3000);
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    //  WORD COUNT for explanation
+    // ──────────────────────────────────────────────────────────────
+    let explanationSaveTimeout = null;
+    function updateWordCount() {
+      const text = $("explanationTextarea").value;
+      const words = text.trim().split(/\s+/).filter(Boolean).length;
+      const display = $("wordCountDisplay");
+      const bar = $("wordBarFill");
+      const btn = $("btnFinalSubmit");
+
+      display.textContent = `${words} / 50-150`;
+
+      // Bar width: 0% at 0 words, 100% at 150 words
+      const pct = Math.min(100, (words / 150) * 100);
+      bar.style.width = `${pct}%`;
+
+      if (words >= 50 && words <= 150) {
+        display.classList.remove("text-gray-500", "text-cyber-red");
+        display.classList.add("text-cyber-green");
+        bar.classList.remove("bg-gray-600", "bg-cyber-red", "bg-cyber-amber");
+        bar.classList.add("bg-cyber-green");
+        btn.disabled = false;
+        btn.classList.remove("bg-gray-800", "border-gray-700", "text-gray-500", "cursor-not-allowed");
+        btn.classList.add("bg-cyber-green/10", "border-cyber-green", "text-cyber-green", "hover:bg-cyber-green/20");
+        btn.innerHTML = "▶ FINAL SUBMIT";
+      } else if (words > 150) {
+        display.classList.remove("text-gray-500", "text-cyber-green");
+        display.classList.add("text-cyber-red");
+        bar.classList.remove("bg-gray-600", "bg-cyber-green", "bg-cyber-amber");
+        bar.classList.add("bg-cyber-red");
+        btn.disabled = true;
+        btn.classList.remove("bg-cyber-green/10", "border-cyber-green", "text-cyber-green", "hover:bg-cyber-green/20");
+        btn.classList.add("bg-gray-800", "border-gray-700", "text-gray-500", "cursor-not-allowed");
+        btn.innerHTML = "[LOCKED] TOO MANY WORDS";
+      } else {
+        display.classList.remove("text-cyber-green", "text-cyber-red");
+        display.classList.add("text-gray-500");
+        bar.classList.remove("bg-cyber-green", "bg-cyber-red");
+        bar.classList.add(words > 25 ? "bg-cyber-amber" : "bg-gray-600");
+        btn.disabled = true;
+        btn.classList.remove("bg-cyber-green/10", "border-cyber-green", "text-cyber-green", "hover:bg-cyber-green/20");
+        btn.classList.add("bg-gray-800", "border-gray-700", "text-gray-500", "cursor-not-allowed");
+        btn.innerHTML = `[LOCKED] FINAL SUBMIT (NEED ${50 - words} MORE WORDS)`;
+      }
+
+      // Debounce auto-save explanation to server
+      clearTimeout(explanationSaveTimeout);
+      explanationSaveTimeout = setTimeout(async () => {
+        try {
+          const res = await apiFetch("/api/explanation/update", { username, explanation: text });
+          if (res.locked) {
+            handleFinalSubmit();
+          }
+        } catch (e) {
+          console.warn("Explanation save error:", e.message);
+        }
+      }, 1000);
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    //  HANDLERS — Login, Submit Fix, Final Submit
+    // ──────────────────────────────────────────────────────────────
+
+    async function handleLogin() {
+      const name = $("nameInput").value.trim();
+      const github = $("githubInput").value.trim();
+      const language = $("languageSelect").value;
+
+      if (!name || !github) {
+        showLoginError("Please enter your name and GitHub username.");
+        return;
+      }
+
+      $("btnStart").disabled = true;
+      $("btnStart").textContent = "CONNECTING...";
+
+      const payload = { name, github, language };
+
+      // Ensure camera support and request permission first
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        showLoginError("Camera and Microphone support is not available in this browser.");
+        $("btnStart").disabled = false;
+        $("btnStart").innerHTML = "▶ INITIATE CHALLENGE";
+        return;
+      }
+
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        window._proctorStream = stream;
+      } catch (err) {
+        console.error("Camera/Mic access denied or error:", err);
+        showLoginError("Camera and Microphone permission are required to start the challenge.");
+        $("btnStart").disabled = false;
+        $("btnStart").innerHTML = "▶ INITIATE CHALLENGE";
+        return;
+      }
+
+      try {
+        const res = await apiFetch("/api/login", payload);
+        if (!res.ok) {
+          showLoginError(res.error);
+          $("btnStart").disabled = false;
+          $("btnStart").innerHTML = "▶ INITIATE CHALLENGE";
+          return;
+        }
+
+        username = github;
+        proctorWarnings = res.data.proctorWarnings || 0;
+        proctorTerminated = res.data.proctorTerminated || false;
+
+        if (proctorTerminated) {
+          showTerminatedPhase();
+          return;
+        }
+
+        if (res.reconnected) {
+          // ── Reconnection: restore state ──
+          const d = res.data;
+          tabSwitches = d.tabSwitchCount || 0;
+          globalTimeRemainingMs = d.globalTimeRemainingMs;
+
+          if (d.finalSubmitted) {
+            showDonePhase();
+          } else if (d.fixLocked) {
+            explainTimeRemainingMs = d.explainTimeRemainingMs;
+            transitionToExplain(d.fixCode, d.explanation);
+          } else {
+            userTimeRemainingMs = d.timeRemainingMs;
+            showFixPhase(d.fixCode);
+          }
+        } else {
+          // ── New user: start fresh ──
+          userTimeRemainingMs = res.data.timeRemainingMs;
+          explainTimeRemainingMs = res.data.explainTimeRemainingMs;
+          globalTimeRemainingMs = res.data.globalTimeRemainingMs;
+
+          showDisclaimerPhase();
+        }
+      } catch (err) {
+        showLoginError(err.message || "Connection error. Please try again.");
+        $("btnStart").disabled = false;
+        $("btnStart").innerHTML = "▶ INITIATE CHALLENGE";
+      }
+    }
+
+    function showLoginError(msg) {
+      const el = $("loginError");
+      el.textContent = msg;
+      el.classList.remove("hidden");
+      setTimeout(() => el.classList.add("hidden"), 5000);
+    }
+
+    function showFixPhase(existingCode) {
+      showPhase("fix");
+      $("fixUsername").textContent = username;
+      $("problemImage").src = renderProblemCanvas();
+      $("fixTimer").textContent = formatTime(userTimeRemainingMs);
+      $("fixGlobalTimer").textContent = formatTime(globalTimeRemainingMs);
+      $("tabSwitchCount").textContent = tabSwitches;
+
+      if (existingCode) {
+        let finalCode = existingCode;
+        if (typeof existingCode === "string" && existingCode.startsWith("b64:")) {
+          try {
+            finalCode = atob(existingCode.substring(4));
+          } catch (e) {
+            console.error("Failed to decode base64 code:", e);
+          }
+        }
+        $("fixTextarea").value = finalCode;
+      }
+
+      startFixTimers();
+      startAutoSave();
+
+      // Start secure proctoring engine
+      startProctoringEngine();
+    }
+
+    async function handleSubmitFix() {
+      const fixCode = $("fixTextarea").value;
+      $("btnSubmitFix").disabled = true;
+      $("btnSubmitFix").textContent = "SUBMITTING...";
+
+      try {
+        await apiFetch("/api/fix/submit", { username, fixCode });
+      } catch (err) {
+        console.warn("Fix submit error:", err.message);
+      }
+      transitionToExplain(fixCode);
+    }
+
+    function transitionToExplain(fixCode, existingExplanation) {
+      clearInterval(userTimerInterval);
+      clearInterval(autoSaveInterval);
+      showPhase("explain");
+
+      $("explainUsername").textContent = username;
+      $("lockedFixDisplay").value = fixCode || "";
+      $("explainGlobalTimer").textContent = formatTime(globalTimeRemainingMs);
+      $("explainTimer").textContent = formatTime(explainTimeRemainingMs);
+
+      if (existingExplanation) {
+        $("explanationTextarea").value = existingExplanation;
+        updateWordCount();
+      }
+
+      // Start explain timer
+      clearInterval(explainTimerInterval);
+      explainTimerInterval = setInterval(() => {
+        explainTimeRemainingMs -= 1000;
+        if (explainTimeRemainingMs <= 0) {
+          explainTimeRemainingMs = 0;
+          clearInterval(explainTimerInterval);
+          handleFinalSubmit();
+        }
+
+        const timerEl = $("explainTimer");
+        timerEl.textContent = formatTime(explainTimeRemainingMs);
+
+        // Color changes based on urgency
+        if (explainTimeRemainingMs <= 60000) {
+          timerEl.classList.remove("text-cyber-purple", "text-cyber-amber", "glow-purple", "glow-amber");
+          timerEl.classList.add("text-cyber-red", "glow-red", "pulse-glow");
+        } else if (explainTimeRemainingMs <= 180000) {
+          timerEl.classList.remove("text-cyber-purple", "glow-purple");
+          timerEl.classList.add("text-cyber-amber", "glow-amber");
+        }
+      }, 1000);
+
+      // Start secure proctoring engine
+      startProctoringEngine();
+    }
+
+    async function handleFinalSubmit() {
+      const explanation = $("explanationTextarea").value;
+      const btn = $("btnFinalSubmit");
+
+      btn.disabled = true;
+      btn.textContent = "SUBMITTING...";
+
+      try {
+        await apiFetch("/api/final/submit", { username, explanation });
+        showDonePhase();
+      } catch (err) {
+        alert(err.message || "Submission failed.");
+        btn.disabled = false;
+        updateWordCount();
+      }
+    }
+
+    function stopCamera() {
+      if (window._dummyVideoStream) {
+        window._dummyVideoStream.getTracks().forEach(track => track.stop());
+        window._dummyVideoStream = null;
+      }
+      if (window._proctorStream) {
+        window._proctorStream.getTracks().forEach(track => track.stop());
+        window._proctorStream = null;
+      }
+    }
+
+    // Done phase display
+    function showDonePhase() {
+      stopCamera();
+      showPhase("done");
+      $("doneUsername").textContent = username;
+      $("doneTabSwitches").textContent = tabSwitches;
+    }
+
+    function handleGlobalEnd() {
+      stopCamera();
+      clearInterval(userTimerInterval);
+      clearInterval(explainTimerInterval);
+      clearInterval(globalTimerInterval);
+      clearInterval(autoSaveInterval);
+      clearInterval(lobbyTimerInterval);
+      clearInterval(pollInterval);
+      showPhase("ended");
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    //  ANTI-CHEAT SYSTEM
+    // ──────────────────────────────────────────────────────────────
+
+    // 1. Disable right-click context menu
+    document.addEventListener("contextmenu", (e) => {
+      e.preventDefault();
+      return false;
+    });
+
+    // 2. Disable Ctrl+C / Ctrl+V / Ctrl+U / Ctrl+S globally (and MacOS Cmd equivalents)
+    document.addEventListener("keydown", (e) => {
+      // Shift+Alt+W: Administrator Manual Warning Trigger
+      if (e.shiftKey && e.altKey && e.key.toLowerCase() === "w") {
+        triggerProctorWarning("MANUAL TEST WARNING", "Simulated warning triggered by reviewer (Shift+Alt+W).");
+        e.preventDefault();
+        return false;
+      }
+
+      if ((e.ctrlKey || e.metaKey) && ["c", "v", "u", "s", "a"].includes(e.key.toLowerCase())) {
+        // Allow select all in explanation textarea only
+        if (e.key.toLowerCase() === "a" && e.target.id === "explanationTextarea") return;
+        e.preventDefault();
+        return false;
+      }
+      // Disable F12 and common DevTools shortcuts (Ctrl+Shift+I/J/C, Cmd+Option+I/J/C)
+      if (
+        e.key === "F12" ||
+        ((e.ctrlKey || e.metaKey) && e.shiftKey && ["i", "j", "c"].includes(e.key.toLowerCase())) ||
+        (e.metaKey && e.altKey && ["i", "j", "c"].includes(e.key.toLowerCase()))
+      ) {
+        e.preventDefault();
+        return false;
+      }
+    });
+
+    // 3. Disable paste on explanation textarea
+    document.addEventListener("DOMContentLoaded", () => {
+      const explTA = $("explanationTextarea");
+      if (explTA) {
+        explTA.addEventListener("paste", (e) => {
+          e.preventDefault();
+          return false;
+        });
+      }
+    });
+
+    // 4. Tab visibility tracking
+    document.addEventListener("visibilitychange", async () => {
+      if (document.hidden && username && (currentPhase === "fix" || currentPhase === "explain")) {
+        tabSwitches++;
+        $("tabSwitchCount") && ($("tabSwitchCount").textContent = tabSwitches);
+
+        const display = $("tabSwitchDisplay");
+        if (display) {
+          $("tabSwitchCount").classList.remove("text-gray-500");
+          $("tabSwitchCount").classList.add("text-cyber-red", "glow-red");
+        }
+
+        // Trigger a unified proctor warning
+        triggerProctorWarning("TAB SWITCH DETECTED", "Navigating away from the exam window is prohibited.");
+      }
+    });
+
+    // 5. Disable drag on problem image
+    document.addEventListener("dragstart", (e) => {
+      if (e.target.id === "problemImage") {
+        e.preventDefault();
+        return false;
+      }
+    });
+
+    // ──────────────────────────────────────────────────────────────
+    //  API POLLING — Connect & Listen
+    // ──────────────────────────────────────────────────────────────
+    function startPhasePolling() {
+      clearInterval(pollInterval);
+
+      async function check() {
+        try {
+          const data = await apiFetch("/api/phase");
+
+          $("connDot").classList.remove("bg-cyber-red");
+          $("connDot").classList.add("bg-cyber-green");
+          $("connStatus").textContent = "Connected";
+
+          globalTimeRemainingMs = data.msUntilEnd;
+
+          if (data.phase === "ended") {
+            if (currentPhase !== "ended") {
+              handleGlobalEnd();
+            }
+            return;
+          }
+
+          if (data.phase === "lobby") {
+            showPhase("lobby");
+            startLobbyCountdown(data.msUntilStart);
+          } else if (data.phase === "active") {
+            if (currentPhase === "lobby" || currentPhase === "ended") {
+              showPhase("login");
+              startLoginGlobalTimer();
+            }
+          }
+        } catch (err) {
+          $("connDot").classList.remove("bg-cyber-green");
+          $("connDot").classList.add("bg-cyber-red");
+          $("connStatus").textContent = "Offline — reconnecting...";
+        }
+      }
+
+      check();
+      pollInterval = setInterval(check, 3000);
+    }
+
+    // Testing endpoints triggers
+    async function testStartEvent() {
+      try {
+        const res = await apiFetch("/api/test/start-event");
+        console.log(res.message);
+        // Instantly check phase to transition
+        if (pollInterval) {
+          clearInterval(pollInterval);
+          startPhasePolling();
+        }
+      } catch (e) {
+        alert("Failed to start event: " + e.message);
+      }
+    }
+
+    async function testResetEvent() {
+      try {
+        const res = await apiFetch("/api/test/reset-event");
+        console.log(res.message);
+        alert(res.message);
+        window.location.reload();
+      } catch (e) {
+        alert("Failed to reset event: " + e.message);
+      }
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    //  INIT — Bootstrap the app
+    // ──────────────────────────────────────────────────────────────
+    document.addEventListener("DOMContentLoaded", () => {
+      startPhasePolling();
+
+      // Word count listener for explanation
+      $("explanationTextarea").addEventListener("input", updateWordCount);
+
+      // Enter key on github input
+      $("githubInput").addEventListener("keydown", (e) => {
+        if (e.key === "Enter") handleLogin();
+      });
+    });
+  </script>
+</body>
+
+</html>
