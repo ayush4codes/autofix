@@ -159,11 +159,11 @@ const storage = new StorageManager();
 // ============================================================================
 
 async function getTodayEventWindow() {
-  let windowData = await storage.getEventWindow();
-  if (windowData) {
-    return windowData;
-  }
   if (TEST_MODE) {
+    let windowData = await storage.getEventWindow();
+    if (windowData) {
+      return windowData;
+    }
     const now = Date.now();
     windowData = {
       startMs: now - 2 * 60 * 1000,       // Starts 2 minutes ago (active immediately)
