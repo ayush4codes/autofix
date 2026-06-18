@@ -1180,6 +1180,9 @@
           }
           lastFrameData = new Uint8Array(pixels);
 
+          const gazeDeviating = !isMouseInWindow || (motionMetric > 4 && Math.random() < 0.15); 
+          const isTyping = (Date.now() - lastKeyPressTime) < 2000;
+
           // 1. Static feed freeze check
           if (motionMetric < 0.15 && !isAuditActive) {
             frozenSecs += 0.25;
@@ -1192,9 +1195,11 @@
           }
 
           // 2. Stable posture handheld device detection
-          if (faceMotion < 0.6 && lowerMotion > 3.5 && !isAuditActive) {
+          const isSuspectDevice = (faceMotion < 0.8 && lowerMotion > 1.8) || (gazeDeviating && !isTyping && lowerMotion > 1.2);
+
+          if (isSuspectDevice && !isAuditActive) {
             stableDeviceTicks += 0.25;
-            if (stableDeviceTicks >= 3.0) {
+            if (stableDeviceTicks >= 1.2) {
               stableDeviceTicks = 0;
               triggerProctorWarning("MOBILE/HANDHELD DEVICE DETECTED", "Suspicious hand-held device movement detected in lower frame while head is stable.");
             }
@@ -1238,8 +1243,6 @@
           }
 
           // 3. Eye Gaze tracking check (exemption: allowed to look down at keyboard area if typing)
-          const gazeDeviating = !isMouseInWindow || (motionMetric > 4 && Math.random() < 0.15); 
-          const isTyping = (Date.now() - lastKeyPressTime) < 2000;
 
           if (gazeDeviating && !isAuditActive) {
             if (isTyping) {
