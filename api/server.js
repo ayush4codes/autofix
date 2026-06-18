@@ -167,8 +167,8 @@ async function getTodayEventWindow() {
     const now = Date.now();
     windowData = {
       startMs: now - 2 * 60 * 1000,       // Starts 2 minutes ago (active immediately)
-      endMs: now + 20 * 60 * 1000,        // 20 minutes total duration
-      exportMs: now + 21 * 60 * 1000,     // 1 minute buffer for export
+      endMs: now + 5 * 60 * 60 * 1000,    // 5 hours total duration
+      exportMs: now + (5 * 60 + 1) * 60 * 1000, // 5 hours 1 minute
     };
     await storage.setEventWindow(windowData);
     return windowData;
@@ -235,11 +235,11 @@ app.post("/api/test/start-event", async (req, res) => {
     const now = Date.now();
     const windowData = {
       startMs: now - 5000,                  // Started 5 seconds ago
-      endMs: now + 60 * 60 * 1000,          // 60 minutes duration
-      exportMs: now + 61 * 60 * 1000,
+      endMs: now + 5 * 60 * 60 * 1000,      // 5 hours duration
+      exportMs: now + (5 * 60 + 1) * 60 * 1000,
     };
     await storage.setEventWindow(windowData);
-    res.json({ ok: true, message: "Event started successfully." });
+    res.json({ ok: true, message: "Event started successfully for 5 hours." });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
