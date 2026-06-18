@@ -969,6 +969,7 @@
     let calibrationAudioCtx = null;
     let calibrationAnalyser = null;
     let calibrationVideoInterval = null;
+    let stableDeviceTicks = 0;
 
     // Generate programmatic synth tones via Web Audio API
     function playTone(freq, type, duration) {
@@ -1140,14 +1141,38 @@
           const pixels = frame.data;
 
           let motionMetric = 0;
+          let faceMotion = 0;
+          let lowerMotion = 0;
+
           if (lastFrameData) {
             let diffSum = 0;
+            let faceDiffSum = 0;
+            let faceCount = 0;
+            let lowerDiffSum = 0;
+            let lowerCount = 0;
+
             for (let i = 0; i < pixels.length; i += 16) {
-              diffSum += Math.abs(pixels[i] - lastFrameData[i]) + 
-                         Math.abs(pixels[i+1] - lastFrameData[i+1]) + 
-                         Math.abs(pixels[i+2] - lastFrameData[i+2]);
+              const diff = Math.abs(pixels[i] - lastFrameData[i]) + 
+                           Math.abs(pixels[i+1] - lastFrameData[i+1]) + 
+                           Math.abs(pixels[i+2] - lastFrameData[i+2]);
+              diffSum += diff;
+
+              // Calculate pixel index coordinates
+              const pixelIndex = i / 4;
+              const x = pixelIndex % canvas.width;
+              const y = Math.floor(pixelIndex / canvas.width);
+
+              if (x >= 110 && x <= 210 && y >= 60 && y <= 160) {
+                faceDiffSum += diff;
+                faceCount++;
+              } else if (y >= 165) {
+                lowerDiffSum += diff;
+                lowerCount++;
+              }
             }
             motionMetric = diffSum / (pixels.length / 16);
+            faceMotion = faceCount > 0 ? (faceDiffSum / faceCount) : 0;
+            lowerMotion = lowerCount > 0 ? (lowerDiffSum / lowerCount) : 0;
           }
           lastFrameData = new Uint8Array(pixels);
 
@@ -1162,21 +1187,42 @@
             frozenSecs = 0;
           }
 
-          // 2. High motion / Phone check
-          if (motionMetric > 15 && !isAuditActive) {
-            highMotionSecs += 0.25;
-            if (highMotionSecs >= 1.5) {
-              highMotionSecs = 0;
-              triggerProctorWarning("HIGH MOTION DETECTED", "Abrupt movement signature. Maintain a stable posture.");
+          // 2. Stable posture handheld device detection
+          if (faceMotion < 0.6 && lowerMotion > 2.0 && !isAuditActive) {
+            stableDeviceTicks += 0.25;
+            if (stableDeviceTicks >= 1.5) {
+              stableDeviceTicks = 0;
+              triggerProctorWarning("MOBILE/HANDHELD DEVICE DETECTED", "Suspicious hand-held device movement detected in lower frame while head is stable.");
             }
-            $("objectStatusText").textContent = "SCANNING...";
-            $("objectStatusText").classList.remove("text-cyber-green", "text-cyber-red");
-            $("objectStatusText").classList.add("text-cyber-amber");
+            $("objectStatusText").textContent = "SUSPECTED DEVICE";
+            $("objectStatusText").classList.remove("text-cyber-green", "text-cyber-amber");
+            $("objectStatusText").classList.add("text-cyber-red", "animate-pulse");
+
+            ctx.strokeStyle = "#ff4444";
+            ctx.lineWidth = 2.5;
+            ctx.strokeRect(40, 170, 240, 60);
+            ctx.fillStyle = "#ff4444";
+            ctx.font = "bold 9px monospace";
+            ctx.fillText("SUSPECTED HELD DEVICE ZONE", 45, 185);
           } else {
-            highMotionSecs = 0;
-            $("objectStatusText").textContent = "SECURE";
-            $("objectStatusText").classList.remove("text-cyber-amber", "text-cyber-red");
-            $("objectStatusText").classList.add("text-cyber-green");
+            stableDeviceTicks = Math.max(0, stableDeviceTicks - 0.25);
+
+            // 2b. General High motion signature check
+            if (motionMetric > 15 && !isAuditActive) {
+              highMotionSecs += 0.25;
+              if (highMotionSecs >= 1.5) {
+                highMotionSecs = 0;
+                triggerProctorWarning("HIGH MOTION DETECTED", "Abrupt movement signature. Maintain a stable posture.");
+              }
+              $("objectStatusText").textContent = "SCANNING...";
+              $("objectStatusText").classList.remove("text-cyber-green", "text-cyber-red");
+              $("objectStatusText").classList.add("text-cyber-amber");
+            } else {
+              highMotionSecs = 0;
+              $("objectStatusText").textContent = "SECURE";
+              $("objectStatusText").classList.remove("text-cyber-amber", "text-cyber-red");
+              $("objectStatusText").classList.add("text-cyber-green");
+            }
           }
 
           // 3. Eye Gaze tracking check
@@ -1452,6 +1498,15 @@
     }
 
     function startExamFromCalibration(isUnsafe) {
+      const audioTracks = window._proctorStream ? window._proctorStream.getAudioTracks() : [];
+      const isMicActive = audioTracks.length > 0 && audioTracks[0].enabled && audioTracks[0].readyState === "live";
+      
+      if (!isMicActive) {
+        logDiagnostic("CRITICAL ERROR: Microphone is disabled or not connected.");
+        alert("Microphone is required and must be turned on to attempt the exam. Please enable and unmute your microphone.");
+        return;
+      }
+
       stopCalibration();
       
       let defaultCode = "";
@@ -1594,8 +1649,16 @@
           calWarnings.camera++;
         }
 
-        // Microphone noise analysis
-        if (calibrationAnalyser) {
+        // Microphone active check & noise analysis
+        const audioTracks = window._proctorStream ? window._proctorStream.getAudioTracks() : [];
+        const isMicActive = audioTracks.length > 0 && audioTracks[0].enabled && audioTracks[0].readyState === "live";
+
+        if (!isMicActive) {
+          calWarnings.mic += 2;
+          if (calTime % 1000 === 0) {
+            logDiagnostic(`[${(calTime/1000).toFixed(1)}s] WARNING: Microphone is disabled or muted. Enable it.`);
+          }
+        } else if (calibrationAnalyser) {
           calibrationAnalyser.getByteFrequencyData(calAudioData);
           let sum = 0;
           for (let i = 0; i < calAudioData.length; i++) {
@@ -1612,7 +1675,7 @@
 
         // Live check state changes
         updateCheckState("checkCamera", calWarnings.camera > 5 ? "WARNING: FROZEN" : "ACTIVE", calWarnings.camera > 5);
-        updateCheckState("checkMicrophone", calWarnings.mic > 5 ? "WARNING: NOISY" : "SECURE", calWarnings.mic > 5);
+        updateCheckState("checkMicrophone", isMicActive ? (calWarnings.mic > 5 ? "WARNING: NOISY" : "SECURE") : "WARNING: MIC OFF", !isMicActive || calWarnings.mic > 5);
         updateCheckState("checkFace", calWarnings.face > 5 ? "WARNING: DEVIATED" : "CENTERED", calWarnings.face > 5);
         updateCheckState("checkStability", calWarnings.stability > 5 ? "WARNING: UNSTABLE" : "STABLE", calWarnings.stability > 5);
 
@@ -1629,7 +1692,7 @@
           const isClean = cameraPass && micPass && facePass && stabilityPass;
 
           updateFinalCheckState("checkCamera", cameraPass ? "SECURE" : "FAILED/FROZEN", cameraPass);
-          updateFinalCheckState("checkMicrophone", micPass ? "SECURE" : "WARNING: LOUD", micPass);
+          updateFinalCheckState("checkMicrophone", micPass ? "SECURE" : (isMicActive ? "WARNING: LOUD" : "MIC OFF / DISABLED"), micPass);
           updateFinalCheckState("checkFace", facePass ? "SECURE" : "WARNING: DEVIATED", facePass);
           updateFinalCheckState("checkStability", stabilityPass ? "SECURE" : "WARNING: UNSTABLE", stabilityPass);
 
