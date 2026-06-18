@@ -1417,6 +1417,13 @@
 
       $("roomAuditModal").classList.remove("hidden");
       
+      const btn = $("btnCompleteAudit");
+      if (btn) {
+        btn.disabled = true;
+        btn.classList.add("opacity-50", "cursor-not-allowed");
+        btn.textContent = "SCANNING SURROUNDINGS (20s)...";
+      }
+      
       auditTimeLeft = 20;
       $("auditCountdownText").textContent = `${auditTimeLeft}s`;
       $("auditProgressBar").style.width = "100%";
@@ -1428,17 +1435,25 @@
           clearInterval(auditCountdownInterval);
           $("auditCountdownText").textContent = "SCAN COMPLETE";
           $("auditProgressBar").style.width = "0%";
-          handleCompleteAudit();
+          if (btn) {
+            btn.disabled = false;
+            btn.classList.remove("opacity-50", "cursor-not-allowed");
+            btn.textContent = "▶ CONTINUE TO EXAM";
+          }
         } else {
           $("auditCountdownText").textContent = `${auditTimeLeft}s`;
           const pct = (auditTimeLeft / 20) * 100;
           $("auditProgressBar").style.width = `${pct}%`;
+          if (btn) {
+            btn.textContent = `SCANNING SURROUNDINGS (${auditTimeLeft}s)...`;
+          }
           playTone(500, "sine", 0.02);
         }
       }, 1000);
     }
 
     async function handleCompleteAudit() {
+      if (auditTimeLeft > 0) return;
       clearInterval(auditCountdownInterval);
       playSuccessTone();
 
