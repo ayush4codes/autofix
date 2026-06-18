@@ -369,7 +369,7 @@
     </header>
 
     <!-- ══════════════════════════════════════════════════════════ -->
-    <!-- PHASE 0: LOBBY — Countdown to 19:00 IST                 -->
+    <!-- PHASE 0: LOBBY — Countdown to 19:30 IST                 -->
     <!-- ══════════════════════════════════════════════════════════ -->
     <section id="phaseLobby" class="phase-container hidden">
       <div class="bg-cyber-panel border border-cyber-border rounded-xl p-8 md:p-12 text-center box-glow-green">
@@ -398,11 +398,11 @@
 
         <div class="border-t border-cyber-border pt-6">
           <p class="text-gray-500 text-xs leading-relaxed max-w-md mx-auto">
-            The challenge opens at <span class="text-cyber-green font-bold">19:00 IST</span> sharp.<br />
+            The challenge opens at <span class="text-cyber-green font-bold">19:30 IST</span> sharp.<br />
             Once live, you'll have <span class="text-cyber-amber font-bold">15 minutes</span> to fix broken code.<br />
             All activity is monitored. No second chances.
           </p>
-          <div class="mt-6 flex flex-wrap justify-center gap-3">
+          <div id="testControls" class="mt-6 flex flex-wrap justify-center gap-3 hidden">
             <button onclick="testStartEvent()"
               class="px-5 py-2.5 bg-cyber-green/10 border border-cyber-green text-cyber-green font-bold rounded-lg hover:bg-cyber-green/20 transition-all tracking-widest text-[10px] uppercase shadow-md hover:shadow-cyber-green/10">
               ▶ Force Start Event Now
@@ -2400,6 +2400,13 @@
           $("connStatus").textContent = "Connected";
 
           globalTimeRemainingMs = data.msUntilEnd;
+
+          // Toggle visibility of test controls container based on testMode flag
+          if (data.testMode) {
+            $("testControls")?.classList.remove("hidden");
+          } else {
+            $("testControls")?.classList.add("hidden");
+          }
 
           if (data.phase === "ended") {
             if (currentPhase !== "ended") {

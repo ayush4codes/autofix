@@ -179,8 +179,8 @@ async function getTodayEventWindow() {
   const month = nowIST.getMonth();
   const day = nowIST.getDate();
 
-  // 19:00 IST in UTC
-  const startIST = new Date(year, month, day, 19, 0, 0, 0);
+  // 19:30 IST in UTC
+  const startIST = new Date(year, month, day, 19, 30, 0, 0);
   const startUTC = new Date(startIST.getTime() - IST_OFFSET_MS - new Date().getTimezoneOffset() * 60000);
 
   // 20:30 IST in UTC
@@ -223,6 +223,7 @@ app.get("/api/phase", async (req, res) => {
       msUntilStart: Math.max(0, startMs - now),
       msUntilEnd: Math.max(0, endMs - now),
       serverTime: now,
+      testMode: TEST_MODE,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -231,6 +232,9 @@ app.get("/api/phase", async (req, res) => {
 
 // 1.5. Force Start Event (Test Endpoint)
 app.post("/api/test/start-event", async (req, res) => {
+  if (!TEST_MODE) {
+    return res.status(403).json({ error: "Test mode is disabled." });
+  }
   try {
     const now = Date.now();
     const windowData = {
@@ -247,6 +251,9 @@ app.post("/api/test/start-event", async (req, res) => {
 
 // 1.6. Force Reset/Stop Event (Test Endpoint)
 app.post("/api/test/reset-event", async (req, res) => {
+  if (!TEST_MODE) {
+    return res.status(403).json({ error: "Test mode is disabled." });
+  }
   try {
     const now = Date.now();
     const windowData = {
